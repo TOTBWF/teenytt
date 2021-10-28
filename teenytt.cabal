@@ -1,0 +1,83 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.3.
+--
+-- see: https://github.com/sol/hpack
+
+name:           teenytt
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/teenytt#readme>
+homepage:       https://github.com/githubuser/teenytt#readme
+bug-reports:    https://github.com/githubuser/teenytt/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2021 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/teenytt
+
+library
+  exposed-modules:
+      Lib
+      TeenyTT.Core.Domain
+      TeenyTT.Core.Env
+      TeenyTT.Core.Eval
+      TeenyTT.Core.Ident
+      TeenyTT.Core.Refiner.Monad
+      TeenyTT.Core.Refiner.Pi
+      TeenyTT.Core.Refiner.Structural
+      TeenyTT.Core.Refiner.Univ
+      TeenyTT.Core.Syntax
+      TeenyTT.Core.Tactic
+  other-modules:
+      Paths_teenytt
+  hs-source-dirs:
+      src
+  default-extensions: DerivingStrategies DeriveFunctor DeriveFoldable DeriveTraversable ImportQualifiedPost LambdaCase NamedFieldPuns GeneralizedNewtypeDeriving OverloadedStrings RecordWildCards StrictData
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , mtl
+    , text
+    , transformers
+  default-language: Haskell2010
+
+executable teenytt-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_teenytt
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , mtl
+    , teenytt
+    , text
+    , transformers
+  default-language: Haskell2010
+
+test-suite teenytt-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_teenytt
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , mtl
+    , teenytt
+    , text
+    , transformers
+  default-language: Haskell2010
