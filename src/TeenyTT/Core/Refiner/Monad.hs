@@ -2,9 +2,11 @@ module TeenyTT.Core.Refiner.Monad
   ( RM
   , runRM
   , liftEval
+  , liftQuote
+  , liftConv
   -- * Errors
-  , RefineErr(..)
-  , refineErr
+  , unboundVariable
+  , goalMismatch
   -- * Variable
   , scope
   , Resolved(..)
@@ -21,7 +23,14 @@ import Control.Monad.Reader
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Env (Env, Index, Level)
 import TeenyTT.Core.Env qualified as Env
+import TeenyTT.Core.Error (Error(..), Connective)
+import TeenyTT.Core.Error qualified as Err
+
+import TeenyTT.Core.Conversion
 import TeenyTT.Core.Eval
+import TeenyTT.Core.Quote
+
+import TeenyTT.Core.Compute (MonadCmp(..), runCmp)
 
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
@@ -29,10 +38,14 @@ import TeenyTT.Core.Syntax qualified as S
 data Cell a = Cell { ident :: Ident, contents :: a }
 
 -- | The Refiner Monad.
-newtype RM a = RM { unRM :: ReaderT RefineEnv (Except RefineErr) a }
+newtype RM a = RM { unRM :: ReaderT RefineEnv (Except Error) a }
     deriving (Functor, Applicative, Monad, MonadReader RefineEnv)
 
-runRM :: Env (Cell (Maybe D.Value, D.Type)) -> RM a -> Either RefineErr a
+instance MonadCmp RM where
+    liftCmp m = RM $ ReaderT $ \RefineEnv{..} -> liftEither $ runCmp (fmap (fst . contents) rm_globals) m
+    failure err = RM $ throwError err
+
+runRM :: Env (Cell (Maybe D.Value, D.Type)) -> RM a -> Either Error a
 runRM globals (RM m) =
     let env = RefineEnv { rm_locals = Env.empty
                         , rm_globals = globals
@@ -51,8 +64,17 @@ data RefineEnv = RefineEnv
 evalEnv :: RefineEnv -> EvalEnv
 evalEnv RefineEnv{..} =
     EvalEnv { env_locals = fmap (fst . contents) rm_locals
-            , env_globals = fmap (fst . contents) rm_globals
             }
+
+quoteEnv :: RefineEnv -> QuoteEnv
+quoteEnv RefineEnv{..} =
+    QuoteEnv { qu_locals = Env.size rm_locals
+             }
+
+convEnv :: RefineEnv -> ConvEnv
+convEnv RefineEnv{..} =
+    ConvEnv { conv_locals = Env.size rm_locals
+             }
 
 pushLocal :: Ident -> D.Type -> (Level -> D.Value) -> RefineEnv -> RefineEnv
 pushLocal x tp k env =
@@ -60,20 +82,19 @@ pushLocal x tp k env =
     in env { rm_locals = Env.push (rm_locals env) mkCell }
 
 --------------------------------------------------------------------------------
--- Refiner Errors
+-- Errors
 
-data RefineErr
-    = EvalFailed EvalErr
-    | UnboundVariable Ident
-    | GoalMismatch Text D.Type
-    deriving (Show)
+unboundVariable :: Ident -> RM a
+unboundVariable x = failure $ UnboundVariable x
 
-hoistErr :: (err -> RefineErr) -> Either err a -> RM a
-hoistErr f (Left err) = RM $ throwError (f err)
-hoistErr f (Right a) = pure a
+goalMismatch :: Connective -> D.Type -> RM a
+goalMismatch expected actual = do
+    qtp <- liftQuote $ quoteTp actual
+    failure $ GoalMismatch expected qtp
 
-refineErr :: RefineErr -> RM a
-refineErr err = RM $ throwError err
+hoistErr :: Either Error a -> RM a
+hoistErr (Left err) = failure err
+hoistErr (Right a) = pure a
 
 --------------------------------------------------------------------------------
 -- Lifting
@@ -82,7 +103,17 @@ refineErr err = RM $ throwError err
 liftEval :: EvM a -> RM a
 liftEval m = do
     ev_env <- asks evalEnv
-    hoistErr EvalFailed $ runEval ev_env m
+    liftCmp $ runEval ev_env m
+
+liftQuote :: QuM a -> RM a
+liftQuote m = do
+    qu_env <- asks quoteEnv
+    liftCmp $ runQuote qu_env m
+
+liftConv :: ConvM a -> RM a
+liftConv m = do
+    conv_env <- asks convEnv
+    liftCmp $ runConv conv_env m
 
 --------------------------------------------------------------------------------
 -- Variables

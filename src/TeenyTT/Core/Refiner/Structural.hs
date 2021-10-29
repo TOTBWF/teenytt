@@ -5,6 +5,7 @@ module TeenyTT.Core.Refiner.Structural
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Refiner.Monad
 import TeenyTT.Core.Eval
+import TeenyTT.Core.Error (Error(..))
 
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
@@ -19,5 +20,5 @@ var x = T.Syn $ resolve x >>= \case
     Global lvl -> do
         (_, vtp) <- getGlobal lvl
         pure (S.Global lvl, vtp)
-    Unbound -> refineErr $ UnboundVariable x
+    Unbound -> unboundVariable x
 

@@ -2,11 +2,13 @@ module TeenyTT.Core.Eval
   ( EvM
   , runEval
   , EvalEnv(..)
-  , EvalErr(..)
+  -- * Closures
   , instTmClo
   , instTpClo
   , eval
   , evalTp
+  -- * Semantic Operations
+  , app
   ) where
 
 import Control.Monad.Reader
@@ -15,6 +17,9 @@ import Control.Monad.Except
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Env (Env, Index, Level)
 import TeenyTT.Core.Env qualified as Env
+import TeenyTT.Core.Error as Err
+
+import TeenyTT.Core.Compute
 
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
@@ -22,23 +27,11 @@ import TeenyTT.Core.Syntax qualified as S
 -- | The Evaluation Monad.
 --
 -- All we need access to here are environments, and the ability to throw errors.
-newtype EvM a = EvM { unEvM :: ReaderT EvalEnv (Except EvalErr) a }
-    deriving (Functor, Applicative, Monad, MonadReader EvalEnv, MonadError EvalErr)
+newtype EvM a = EvM { unEvM :: ReaderT EvalEnv CmpM a }
+    deriving (Functor, Applicative, Monad, MonadCmp)
 
-runEval :: EvalEnv -> EvM a -> Either EvalErr a
-runEval env (EvM m) = runExcept $ runReaderT m env
-
---------------------------------------------------------------------------------
--- Error Handling
---
--- TODO: Capture the context an error occured in.
-
-data EvalErr
-    = NotAFunction D.Value
-    deriving (Show)
-
-evalError :: EvalErr -> EvM a
-evalError = throwError
+runEval :: EvalEnv -> EvM a -> CmpM a
+runEval env (EvM m) = runReaderT m env
 
 --------------------------------------------------------------------------------
 -- Variable + Environment Management
@@ -48,37 +41,32 @@ evalError = throwError
 
 -- | An Evaluation Environment consists of environments for both local + global bindings.
 data EvalEnv = EvalEnv
-    { env_globals :: Env (Maybe D.Value)
-    , env_locals :: Env D.Value
+    { env_locals :: Env D.Value
     }
 
 -- | Lookup a local variable.
 getLocal :: Index -> EvM D.Value
-getLocal ix = asks (Env.index ix . env_locals)
-
--- | Lookup a global variable.
-getGlobal :: Level -> EvM (Maybe D.Value)
-getGlobal lvl = asks (Env.level lvl . env_globals)
+getLocal ix = EvM $ asks (Env.index ix . env_locals)
 
 -- | Capture the current environment into a closure.
 capture :: a -> EvM (D.Clo a)
 capture a = do
-    locals <- asks env_locals
+    locals <- EvM $ asks env_locals
     pure $ D.Clo locals a
-
--- | Use a provided local environment for evaluation.
-withLocals :: Env D.Value -> EvM a -> EvM a
-withLocals locals m = local (\env -> env { env_locals = locals }) m
 
 --------------------------------------------------------------------------------
 -- Closures
 
+-- | Use a provided local environment for evaluation.
+withLocals :: (MonadCmp m) => Env D.Value -> EvM a -> m a
+withLocals locals (EvM m) = liftCmp $ runReaderT m (EvalEnv locals)
+
 -- | Instantiate an 'S.Term' closure by providing a value for the additional variable binding.
-instTmClo :: (D.Clo S.Term) -> D.Value -> EvM D.Value
+instTmClo :: (MonadCmp m) => (D.Clo S.Term) -> D.Value -> m D.Value
 instTmClo (D.Clo env tm) v = withLocals env $ eval tm
 
 -- | Instantiate an 'S.Type' closure by providing a value for the additional variable binding.
-instTpClo :: (D.Clo S.Type) -> D.Value -> EvM D.Type
+instTpClo :: (MonadCmp m) => (D.Clo S.Type) -> D.Value -> m D.Type
 instTpClo (D.Clo env tp) v = withLocals env $ evalTp tp
 
 --------------------------------------------------------------------------------
@@ -130,11 +118,11 @@ evalTp (S.Pi x base fam) = do
 -- with a @u@.
 
 -- | Apply a value to another value.
-app :: D.Value -> D.Value -> EvM D.Value
+app :: (MonadCmp m) => D.Value -> D.Value -> m D.Value
 app (D.Lam x clo)       ~a = instTmClo clo a
 app (D.Local lvl sp)    ~a = pure $ D.Local lvl (D.App sp a)
 app (D.Global lvl sp uf) ~a = do
     -- See [NOTE: Global Variable Unfolding]
     ufa <- traverse (\f -> app f a) uf
     pure $ D.Global lvl (D.App sp a) ufa
-app f                   ~_ = evalError (NotAFunction f)
+app f                   ~_ = failure $ Err.ValMismatch Err.Pi f

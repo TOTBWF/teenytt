@@ -26,10 +26,14 @@ source-repository head
 library
   exposed-modules:
       Lib
+      TeenyTT.Core.Compute
+      TeenyTT.Core.Conversion
       TeenyTT.Core.Domain
       TeenyTT.Core.Env
+      TeenyTT.Core.Error
       TeenyTT.Core.Eval
       TeenyTT.Core.Ident
+      TeenyTT.Core.Quote
       TeenyTT.Core.Refiner.Monad
       TeenyTT.Core.Refiner.Pi
       TeenyTT.Core.Refiner.Structural

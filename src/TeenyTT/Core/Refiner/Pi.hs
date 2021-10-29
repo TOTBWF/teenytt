@@ -8,6 +8,8 @@ import TeenyTT.Core.Ident
 import TeenyTT.Core.Refiner.Monad
 import TeenyTT.Core.Eval
 
+import TeenyTT.Core.Error qualified as Err
+
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
@@ -26,7 +28,7 @@ intro nm tbody = T.Chk $ \case
         fib <- liftEval $ instTpClo fam (T.vtm var)
         body <- T.runChk (tbody var) fib
         pure $ S.Lam nm body
-    tp -> refineErr $ GoalMismatch "pi" tp
+    tp -> goalMismatch Err.Pi tp
 
 apply ::T.Syn -> T.Chk -> T.Syn
 apply tfun targ = T.Syn $ do
@@ -37,4 +39,4 @@ apply tfun targ = T.Syn $ do
           varg <- liftEval $ eval arg
           fib <- liftEval $ instTpClo fam varg
           pure (S.App fun arg, fib)
-      _ -> refineErr $ GoalMismatch "pi" tp
+      _ -> goalMismatch Err.Pi tp
