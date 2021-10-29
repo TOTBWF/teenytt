@@ -40,17 +40,17 @@ data ConvEnv = ConvEnv
 binders :: Int -> ConvEnv -> ConvEnv
 binders n ConvEnv{..} = ConvEnv { conv_locals = n + conv_locals }
 
-bindVar :: (D.Value -> ConvM a) -> ConvM a
-bindVar k = local (binders 1) $ do
+bindVar :: D.Type -> (D.Value -> ConvM a) -> ConvM a
+bindVar tp k = local (binders 1) $ do
     n <- asks conv_locals
-    k $ D.var (Env.unsafeLevel $ n - 1)
+    k $ D.var (Env.unsafeLevel $ n - 1) tp
 
 equateTp :: D.Type -> D.Type -> ConvM ()
 equateTp D.Univ D.Univ = pure ()
 equateTp D.Nat D.Nat = pure ()
 equateTp (D.Pi _ base0 fam0) (D.Pi _ base1 fam1) = do
     equateTp base0 base1
-    bindVar $ \x -> do
+    bindVar base0 $ \x -> do
         fib0 <- instTpClo fam0 x
         fib1 <- instTpClo fam1 x
         equateTp fib0 fib1

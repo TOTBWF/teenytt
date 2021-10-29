@@ -1,5 +1,6 @@
 module TeenyTT.Core.Quote
   ( QuM
+  , Unfold(..)
   , QuoteEnv(..)
   , runQuote
   , quote
@@ -30,15 +31,30 @@ runQuote env (QuM m) = runReaderT m env
 --------------------------------------------------------------------------------
 -- Environments
 
-data QuoteEnv = QuoteEnv { qu_locals :: Int }
+data Unfold
+    = UnfoldNone
+    | UnfoldAll
+
+data QuoteEnv = QuoteEnv
+    { qu_locals :: Int
+    , qu_unfold :: Unfold
+    }
 
 binders :: Int -> QuoteEnv -> QuoteEnv
-binders n QuoteEnv{..} = QuoteEnv { qu_locals = n + qu_locals }
+binders n QuoteEnv{..} = QuoteEnv { qu_locals = n + qu_locals, .. }
 
-bindVar :: (D.Value -> QuM a) -> QuM a
-bindVar k = local (binders 1) $ do
+bindVar :: D.Type -> (D.Value -> QuM a) -> QuM a
+bindVar tp k = local (binders 1) $ do
     n <- asks qu_locals
-    k $ D.var (Env.unsafeLevel $ n - 1)
+    k $ D.var (Env.unsafeLevel $ n - 1) tp
+
+quoteVar :: Level -> QuM Index
+quoteVar lvl = do
+    n <- asks qu_locals
+    pure $ Env.unsafeIndex $ n - (Env.unLevel lvl + 1)
+
+shouldUnfold :: QuM Unfold
+shouldUnfold = asks qu_unfold
 
 --------------------------------------------------------------------------------
 -- Quoting
@@ -49,25 +65,47 @@ quote D.Nat (D.Suc n) = do
     qn <- quote D.Nat n
     pure $ S.Suc qn
 quote (D.Pi _ base fam) (D.Lam x clo) =
-    quoteLam x $ \arg -> do
+    quoteLam x base $ \arg -> do
     fib <- instTpClo fam arg
     ret <- instTmClo clo arg
     quote fib ret
 quote (D.Pi x base fam) v =
-    quoteLam x $ \arg -> do
+    quoteLam x base $ \arg -> do
     fib <- instTpClo fam arg
     ret <- app v arg
     quote fib ret
+quote _ (D.Cut neu tp) = quoteNeu tp neu
 quote tp v = failure $ QuotationMismatch tp v
 
-quoteLam :: Ident -> (D.Value -> QuM S.Term) -> QuM S.Term
-quoteLam x k = do
-    body <- bindVar k
+quoteNeu :: D.Type -> D.Neutral -> QuM S.Term
+quoteNeu _ (D.Neutral {hd = D.Local lvl, frames}) = do
+    ix <- quoteVar lvl
+    quoteSpine (S.Local ix) frames
+quoteNeu tp (D.Neutral {hd = D.Global lvl u, frames}) =
+    shouldUnfold >>= \case
+      UnfoldNone -> quoteSpine (S.Global lvl) frames
+      UnfoldAll -> quote tp u
+
+
+quoteSpine :: S.Term -> [D.Frame] -> QuM S.Term
+quoteSpine tm [] = pure tm
+quoteSpine tm (frm : frms) = do
+    tm' <- quoteFrame tm frm
+    quoteSpine tm' frms
+
+quoteFrame :: S.Term -> D.Frame -> QuM S.Term
+quoteFrame tm (D.App tp arg) = do
+    qarg <- quote tp arg
+    pure $ S.App tm qarg
+
+quoteLam :: Ident -> D.Type -> (D.Value -> QuM S.Term) -> QuM S.Term
+quoteLam x tp k = do
+    body <- bindVar tp k
     pure $ S.Lam x body
 
 quoteTpClo :: D.Type -> D.Clo S.Type -> QuM S.Type
 quoteTpClo base fam =
-    bindVar $ \v -> do
+    bindVar base $ \v -> do
       tp <- instTpClo fam v
       quoteTp tp
 

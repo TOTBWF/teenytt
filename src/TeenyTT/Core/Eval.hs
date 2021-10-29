@@ -77,8 +77,8 @@ eval :: S.Term -> EvM D.Value
 eval (S.Local ix)   = getLocal ix
 eval (S.Global lvl) = do
     -- See [NOTE: Global Variable Unfolding]
-    u <- getGlobal lvl
-    pure $ D.Global lvl D.Nil u
+    (~u, tp) <- getGlobal lvl
+    pure $ D.global lvl u tp
 eval (S.Lam x body) = do
     clo <- capture body
     pure $ D.Lam x clo
@@ -117,12 +117,19 @@ evalTp (S.Pi x base fam) = do
 -- We will generally prefix anything value that represents the "unfolded" version
 -- with a @u@.
 
+
 -- | Apply a value to another value.
 app :: (MonadCmp m) => D.Value -> D.Value -> m D.Value
-app (D.Lam x clo)       ~a = instTmClo clo a
-app (D.Local lvl sp)    ~a = pure $ D.Local lvl (D.App sp a)
-app (D.Global lvl sp uf) ~a = do
-    -- See [NOTE: Global Variable Unfolding]
-    ufa <- traverse (\f -> app f a) uf
-    pure $ D.Global lvl (D.App sp a) ufa
+app (D.Lam _ clo)       ~a = instTmClo clo a
+app (D.Cut neu (D.Pi _ base fam)) ~a = do
+    fib <- instTpClo fam a
+    cut neu fib (D.App base a) (\f -> app f a)
 app f                   ~_ = failure $ Err.ValMismatch Err.Pi f
+
+-- | Push a new 'D.Frame' onto a 'D.Neutral' value, potentially updating the global's unfolding.
+cut :: (MonadCmp m) => D.Neutral -> D.Type -> D.Frame -> (D.Value -> m D.Value) -> m D.Value
+cut (D.Neutral (D.Local lvl) frms) tp frm _ =
+    pure $ D.Cut (D.Neutral (D.Local lvl) (frm : frms)) tp
+cut (D.Neutral (D.Global lvl ~u) frms) tp frm ufold = do
+    ~uf <- ufold u
+    pure $ D.Cut (D.Neutral (D.Global lvl uf) (frm : frms)) tp

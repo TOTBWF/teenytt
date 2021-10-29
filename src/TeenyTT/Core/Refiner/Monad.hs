@@ -42,10 +42,10 @@ newtype RM a = RM { unRM :: ReaderT RefineEnv (Except Error) a }
     deriving (Functor, Applicative, Monad, MonadReader RefineEnv)
 
 instance MonadCmp RM where
-    liftCmp m = RM $ ReaderT $ \RefineEnv{..} -> liftEither $ runCmp (fmap (fst . contents) rm_globals) m
+    liftCmp m = RM $ ReaderT $ \RefineEnv{..} -> liftEither $ runCmp (fmap contents rm_globals) m
     failure err = RM $ throwError err
 
-runRM :: Env (Cell (Maybe D.Value, D.Type)) -> RM a -> Either Error a
+runRM :: Env (Cell (D.Value, D.Type)) -> RM a -> Either Error a
 runRM globals (RM m) =
     let env = RefineEnv { rm_locals = Env.empty
                         , rm_globals = globals
@@ -57,7 +57,7 @@ runRM globals (RM m) =
 
 data RefineEnv = RefineEnv
     { rm_locals :: Env (Cell (D.Value, D.Type))
-    , rm_globals :: Env (Cell (Maybe D.Value, D.Type))
+    , rm_globals :: Env (Cell (D.Value, D.Type))
     }
 
 -- | Construct an evaluation environment from a refiner environment.
@@ -69,16 +69,18 @@ evalEnv RefineEnv{..} =
 quoteEnv :: RefineEnv -> QuoteEnv
 quoteEnv RefineEnv{..} =
     QuoteEnv { qu_locals = Env.size rm_locals
+             , qu_unfold = UnfoldNone
              }
 
 convEnv :: RefineEnv -> ConvEnv
 convEnv RefineEnv{..} =
     ConvEnv { conv_locals = Env.size rm_locals
-             }
+            }
 
-pushLocal :: Ident -> D.Type -> (Level -> D.Value) -> RefineEnv -> RefineEnv
-pushLocal x tp k env =
-    let mkCell lvl = Cell x (k lvl, tp)
+-- | Pushes a fresh variable to the locals.
+fresh :: Ident -> D.Type -> RefineEnv -> RefineEnv
+fresh x tp env =
+    let mkCell lvl = Cell x (D.var lvl tp, tp)
     in env { rm_locals = Env.push (rm_locals env) mkCell }
 
 --------------------------------------------------------------------------------
@@ -120,7 +122,7 @@ liftConv m = do
 
 scope :: Ident -> D.Type -> (D.Value -> RM a) -> RM a
 scope x tp k =
-    local (pushLocal x tp D.var) $ do
+    local (fresh x tp) $ do
     (v, _) <- asks (contents . Env.top . rm_locals)
     k v
 
@@ -144,5 +146,5 @@ resolve x = do
 getLocal :: Index -> RM (D.Value, D.Type)
 getLocal ix = asks (contents . Env.index ix . rm_locals)
 
-getGlobal :: Level -> RM (Maybe D.Value, D.Type)
+getGlobal :: Level -> RM (D.Value, D.Type)
 getGlobal lvl = asks (contents . Env.level lvl . rm_globals)

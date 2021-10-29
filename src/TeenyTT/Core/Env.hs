@@ -5,13 +5,16 @@ module TeenyTT.Core.Env
   , extend
   , push
   , Index
+  , unIndex
   , index
   , findIndex
   , top
   , Level
+  , unLevel
   , level
   , findLevel
   -- * Potentially Unsafe Operations
+  , unsafeIndex
   , unsafeLevel
   ) where
 
@@ -59,11 +62,18 @@ findIndex p (Env {..}) = do
     lvl <- S.findIndexR p bindings
     pure $ Index (size - 1 - lvl)
 
+-- | 'unsafeIndex' has the potential to break the invariant that each index points
+-- to some valid place inside of an environment. To use this safely, ensure that
+-- you don't mess up your index arithmetic.
+unsafeIndex :: Int -> Index
+unsafeIndex = Index
+
 -- | Get the top variable off an environment.
 -- Invariant: The environment must be non-empty.
 top :: Env a -> a
 top (Env { bindings = (_ :|> x) }) = x
 top _               = error "Invariant Violated: tried to take the top variable off of an empty environment."
+
 
 --------------------------------------------------------------------------------
 -- DeBrujin Levels
