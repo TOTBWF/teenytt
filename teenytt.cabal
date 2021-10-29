@@ -25,7 +25,6 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
       TeenyTT.Core.Compute
       TeenyTT.Core.Conversion
       TeenyTT.Core.Domain
