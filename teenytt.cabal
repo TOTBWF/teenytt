@@ -18,6 +18,8 @@ build-type:     Simple
 extra-source-files:
     README.md
     ChangeLog.md
+    src/TeenyTT/Frontend/Parser/Lexer.x
+    src/TeenyTT/Frontend/Parser/Grammar.y
 
 source-repository head
   type: git
@@ -39,13 +41,24 @@ library
       TeenyTT.Core.Refiner.Univ
       TeenyTT.Core.Syntax
       TeenyTT.Core.Tactic
+      TeenyTT.Frontend.ConcreteSyntax
+      TeenyTT.Frontend.Driver
+      TeenyTT.Frontend.Elaborator
+      TeenyTT.Frontend.Parser
+      TeenyTT.Frontend.Parser.Grammar
+      TeenyTT.Frontend.Parser.Lexer
+      TeenyTT.Frontend.Parser.Token
   other-modules:
       Paths_teenytt
   hs-source-dirs:
       src
-  default-extensions: DerivingStrategies DeriveFunctor DeriveFoldable DeriveTraversable ImportQualifiedPost LambdaCase NamedFieldPuns GeneralizedNewtypeDeriving OverloadedStrings RecordWildCards StrictData
+  default-extensions: DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
+  build-tools:
+      alex
+    , happy
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , containers
     , mtl
     , text
@@ -58,11 +71,14 @@ executable teenytt-exe
       Paths_teenytt
   hs-source-dirs:
       app
+  default-extensions: DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , containers
     , mtl
+    , optparse-applicative
     , teenytt
     , text
     , transformers
@@ -75,9 +91,11 @@ test-suite teenytt-test
       Paths_teenytt
   hs-source-dirs:
       test
+  default-extensions: DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , containers
     , mtl
     , teenytt

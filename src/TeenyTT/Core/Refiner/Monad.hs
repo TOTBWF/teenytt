@@ -35,8 +35,6 @@ import TeenyTT.Core.Compute (MonadCmp(..), runCmp)
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
-data Cell a = Cell { ident :: Ident, contents :: a }
-
 -- | The Refiner Monad.
 newtype RM a = RM { unRM :: ReaderT RefineEnv (Except Error) a }
     deriving (Functor, Applicative, Monad, MonadReader RefineEnv)

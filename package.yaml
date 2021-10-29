@@ -9,6 +9,8 @@ copyright:           "2021 Author name here"
 extra-source-files:
 - README.md
 - ChangeLog.md
+- src/TeenyTT/Frontend/Parser/Lexer.x
+- src/TeenyTT/Frontend/Parser/Grammar.y
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -21,25 +23,30 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- array
 - containers
-- text
 - mtl
+- text
 - transformers
+
+default-extensions:
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveTraversable
+  - DerivingStrategies
+  - GeneralizedNewtypeDeriving
+  - ImportQualifiedPost
+  - LambdaCase
+  - NamedFieldPuns
+  - OverloadedStrings
+  - RecordWildCards
+  - StrictData
 
 library:
   source-dirs: src
-  default-extensions:
-    - DerivingStrategies
-    - DeriveFunctor
-    - DeriveFoldable
-    - DeriveTraversable
-    - ImportQualifiedPost
-    - LambdaCase
-    - NamedFieldPuns
-    - GeneralizedNewtypeDeriving
-    - OverloadedStrings
-    - RecordWildCards
-    - StrictData
+  build-tools:
+    - alex
+    - happy
 
 executables:
   teenytt-exe:
@@ -50,6 +57,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - optparse-applicative
     - teenytt
 
 tests:
