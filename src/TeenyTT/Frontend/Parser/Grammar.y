@@ -1,12 +1,18 @@
 {
 {-# LANGUAGE NoStrictData #-}
+{-# LANGUAGE OverloadedStrings #-}
 module TeenyTT.Frontend.Parser.Grammar where
+
+import Control.Monad.Except
 
 import Data.List.NonEmpty (NonEmpty(..), (<|))
 import Data.List.NonEmpty qualified as NE
+
+-- FIXME: Hack
 import Data.String
 
 import qualified TeenyTT.Frontend.Parser.Token as T
+import TeenyTT.Frontend.Parser.Lexer.Monad
 
 import TeenyTT.Frontend.ConcreteSyntax
 import TeenyTT.Core.Ident
@@ -14,9 +20,9 @@ import TeenyTT.Core.Ident
 
 }
 
-%name parser expr
+%name exprParser expr
 %tokentype { T.Token }
-%monad { Either String }
+%monad { Lexer }
 %error { parseError }
 
 %token
@@ -31,19 +37,25 @@ import TeenyTT.Core.Ident
 
 %%
 
+--------------------------------------------------------------------------------
+-- Commands
+
+cmd :: { Command }
+    : ident ':' expr {  }
+
+
+--------------------------------------------------------------------------------
+-- Expressions
 
 expr :: { Expr }
-expr
-  : ap  { atoms $1 }
+expr : ap  { atoms $1 }
 
 ap :: { NonEmpty Expr }
-ap
-   :  ap atom { $2 <| $1 }
+ap :  ap atom { $2 <| $1 }
    |  atom    { $1 :| [] }
 
 atom :: { Expr }
-atom
-     : '(' expr ')'                { $2 }
+atom : '(' expr ')'                { $2 }
      | forall tele_cells '->' expr { Pi $2 $4 }
      | ident                       { Var $1 }
 
@@ -51,22 +63,18 @@ atom
 -- Identifiers + Cells
 
 cell :: { Cell Expr }
-cell
-     : '(' ident ':' expr ')' { Cell $2 $4 }
+cell : '(' ident ':' expr ')' { Cell $2 $4 }
      | expr                   { Cell Anon $1 }
 
 tele_cells :: { [Cell Expr] }
-tele_cells
-           : tele_cells_r { reverse $1 }
+tele_cells : tele_cells_r { reverse $1 }
 
 tele_cells_r :: { [Cell Expr] }
-tele_cells_r
-             : tele_cells_r cell { $2 : $1 }
+tele_cells_r : tele_cells_r cell { $2 : $1 }
              | cell              { [$1] }
 
 ident :: { Ident }
-ident
-      : name { fromString $1 }
+ident : name { User $1 }
 
 {
 atoms ::  NonEmpty Expr -> Expr
@@ -78,7 +86,7 @@ atoms xs = case NE.reverse xs of
 --------------------------------------------------------------------------------
 -- Error Handling
 
-parseError :: [T.Token] -> Either String a
-parseError [] = Left $ "ParseError: Empty token stream."
-parseError (tok:_) = Left $ "ParseError: Unexpected token '" <> show tok <> "'."
+parseError :: [T.Token] -> Lexer a
+parseError [] = throwError $ "ParseError: Empty token stream."
+parseError (tok:_) = throwError $ fromString $ "ParseError: Unexpected token '" <> show tok <> "'."
 }
