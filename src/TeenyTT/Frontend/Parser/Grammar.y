@@ -20,6 +20,13 @@ import TeenyTT.Core.Ident
 
 }
 
+-- We expect 0 shift/reduce conflicts
+-- To debug these, run the following command
+-- > happy -agc --strict Grammar.y -idetailed-info
+--
+-- 
+%expect 0
+
 %name toplevel toplevel
 %name expr expr
 %tokentype { T.Token }
@@ -57,9 +64,8 @@ cmds :: { [Command] }
 cmds : cmds_r { reverse $1 }
 
 cmds_r :: { [Command] }
-cmds_r : cmd                   { [$1] }
-       | cmd block_break       { [$1] }
-       | cmds block_break cmd  { $3 : $1 }
+cmds_r : cmd block_break       { [$1] }
+       | cmd block_break cmds  { $1 : $3 }
 
 cmd :: { Command }
 cmd : ident ':' expr { TypeAnn $1 $3 }
@@ -70,15 +76,19 @@ cmd : ident ':' expr { TypeAnn $1 $3 }
 -- Expressions
 
 expr :: { Expr }
-expr : ap  { atoms $1 }
+expr : app    { atoms $1 }
+     | arrow  { $1 }
 
-ap :: { NonEmpty Expr }
-ap :  ap atom { $2 <| $1 }
-   |  atom    { $1 :| [] }
+arrow :: { Expr }
+arrow : forall tele_cells '->' expr { Pi $2 $4 }
+      | cell '->' expr              { Pi [$1] $3 }
+
+app :: { NonEmpty Expr }
+app :  app atom { $2 <| $1 }
+    |  atom     { $1 :| [] }
 
 atom :: { Expr }
 atom : '(' expr ')'                { $2 }
-     | forall tele_cells '->' expr { Pi $2 $4 }
      | ident                       { Var $1 }
 
 --------------------------------------------------------------------------------
@@ -86,7 +96,7 @@ atom : '(' expr ')'                { $2 }
 
 cell :: { Cell Expr }
 cell : '(' ident ':' expr ')' { Cell $2 $4 }
-     | expr                   { Cell Anon $1 }
+     | app %shift             { Cell Anon (atoms $1) }
 
 tele_cells :: { [Cell Expr] }
 tele_cells : tele_cells_r { reverse $1 }
