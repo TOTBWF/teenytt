@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module TeenyTT.Core.Domain
   ( Type(..)
   , Head(..)
@@ -9,6 +10,7 @@ module TeenyTT.Core.Domain
   -- * Environments
   , bindVal
   , bindTp
+  , cloEnv
   -- * Smart Constructors
   , var
   , global
@@ -40,6 +42,9 @@ data Value
     | Zero
     | Suc Value
     | Cut Neutral Type
+    | Rel Type Value
+    | NatSmall
+    | PiSmall Value Value
     deriving (Show)
 
 -- | A 'Neutral' value consists of some variable that evaluation is stuck on
@@ -59,9 +64,12 @@ data Frame = App Type ~Value
     deriving (Show)
 
 data Type
-    = Univ
+    = Univ Int
     | Nat
     | Pi Ident Type (Clo S.Type)
+    | El Type Value
+    | ElCut Type Neutral
+    | Small Type Type
     deriving (Show)
 
 --------------------------------------------------------------------------------
