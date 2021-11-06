@@ -16,14 +16,11 @@ $alphanum = [a-zA-Z09]
 
 tokens :-
 
--- Whitespace insensitive
-$white+                       ;
+-- We don't want to include newlines as part of our whitespace.
+[\ \t]+ ;
 
--- Start States
 <0> "--" .* \n { \_ -> pushStartCode newline *> scan }
 <0> \n         { \_ -> pushStartCode newline *> scan }
-
--- Syntax
 
 <0> (λ|\\)                        { token_ Lambda }
 <0> :                             { token_ Colon }
@@ -64,7 +61,15 @@ handleEOF = pushStartCode eof *> scan
 
 -- | Closes out any layout blocks if they exist, and then emits an 'EOF' token.
 emitEOF :: ByteString -> Lexer Token
-emitEOF _ = pure EOF
+emitEOF _ = do
+  block <- currentBlock
+  case block of
+    Just _ -> do
+      closeBlock
+      pure BlockClose
+    Nothing -> do
+      popStartCode
+      pure EOF
 
 startLayout :: ByteString -> Lexer Token
 startLayout _ = do

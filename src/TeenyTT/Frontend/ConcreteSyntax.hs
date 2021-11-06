@@ -17,5 +17,6 @@ data Expr
     deriving (Show)
 
 data Command
-    = Def Ident Expr Expr
+    = TypeAnn Ident Expr
+    | Def Ident Expr
     deriving (Show)

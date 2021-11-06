@@ -1,3 +1,4 @@
+-- [FIXME: Reed M, 06/11/2021] Rename this to TeenyTT.Frontend.Parser.Monad
 module TeenyTT.Frontend.Parser.Lexer.Monad
   ( Lexer
   , runLexer
@@ -25,6 +26,10 @@ module TeenyTT.Frontend.Parser.Lexer.Monad
   , slice
   ) where
 
+import Data.Maybe (listToMaybe)
+import Data.List.NonEmpty (NonEmpty(..), (<|))
+import Data.List.NonEmpty qualified as NE
+
 import Control.Monad.State.Strict
 import Control.Monad.Except
 
@@ -32,20 +37,13 @@ import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.ByteString.Internal qualified as BS
 import Data.Text (Text)
-import Data.Text.Encoding as TE
+import Data.Text.Encoding qualified as TE
 import Data.Word (Word8)
 
-import Data.List.NonEmpty (NonEmpty(..), (<|))
-import Data.List.NonEmpty qualified as NE
-
-import Data.Maybe (listToMaybe)
-
 import TeenyTT.Frontend.Parser.Token
-import qualified Data.Text.Encoding as T
 
 newtype Lexer a = Lexer { unLexer :: StateT LexerState (Except ByteString) a }
     deriving (Functor, Applicative, Monad, MonadState LexerState, MonadError ByteString)
-
 
 data LexerState =
     LexerState { lexInput      :: {-# UNPACK #-} AlexInput
@@ -53,15 +51,15 @@ data LexerState =
                , lexLayout     :: [Int]
                }
 
-initState :: ByteString -> LexerState
-initState bs =
+initState :: [Int] -> ByteString -> LexerState
+initState codes bs =
     LexerState { lexInput      = Input 0 1 '\n' bs
-               , lexStartCodes = 0 :| []
+               , lexStartCodes = NE.fromList (codes ++ [0])
                , lexLayout     = []
                }
 
-runLexer :: ByteString -> Lexer a -> Either ByteString a
-runLexer bs lex = runExcept $ evalStateT (unLexer lex) (initState bs)
+runLexer :: [Int] -> ByteString -> Lexer a -> Either ByteString a
+runLexer codes bs lex = runExcept $ evalStateT (unLexer lex) (initState codes bs)
 
 --------------------------------------------------------------------------------
 -- [NOTE: Start Codes]
@@ -107,7 +105,7 @@ lexError Input{..} =
 
 {-# INLINE token #-}
 token :: (Text -> Token) -> ByteString -> Lexer Token
-token k bs = pure (k $ T.decodeUtf8 bs)
+token k bs = pure (k $ TE.decodeUtf8 bs)
 
 {-# INLINE token_ #-}
 token_ :: Token -> ByteString -> Lexer Token

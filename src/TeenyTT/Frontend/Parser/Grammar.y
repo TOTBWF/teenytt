@@ -20,7 +20,8 @@ import TeenyTT.Core.Ident
 
 }
 
-%name exprParser expr
+%name toplevel toplevel
+%name expr expr
 %tokentype { T.Token }
 %monad { Lexer }
 %error { parseError }
@@ -31,17 +32,38 @@ import TeenyTT.Core.Ident
   forall { T.ForAll }
   '('    { T.LParen }
   ':'    { T.Colon }
+  '='    { T.Equal }
   ')'    { T.RParen }
+  -- Layout Tokens
+  block_open   { T.BlockOpen }
+  block_break  { T.BlockBreak }
+  block_close  { T.BlockClose }
 
 %right '->'
 
 %%
 
+
+--------------------------------------------------------------------------------
+-- Top Level
+
+toplevel :: { [Command] }
+toplevel : block_open cmds block_close { $2 }
+
 --------------------------------------------------------------------------------
 -- Commands
 
+cmds :: { [Command] }
+cmds : cmds_r { reverse $1 }
+
+cmds_r :: { [Command] }
+cmds_r : cmd                   { [$1] }
+       | cmd block_break       { [$1] }
+       | cmds block_break cmd  { $3 : $1 }
+
 cmd :: { Command }
-    : ident ':' expr {  }
+cmd : ident ':' expr { TypeAnn $1 $3 }
+    | ident '=' expr { Def $1 $3 }
 
 
 --------------------------------------------------------------------------------
