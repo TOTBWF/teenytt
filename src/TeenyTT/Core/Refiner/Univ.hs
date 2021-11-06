@@ -7,5 +7,5 @@ import TeenyTT.Core.Syntax qualified as S
 
 import TeenyTT.Core.Tactic qualified as T
 
-formation :: T.Tp
-formation = T.Tp $ pure S.Univ
+formation :: Int -> T.Tp
+formation i = T.Tp $ pure $ S.Univ i
