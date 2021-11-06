@@ -5,18 +5,34 @@ module TeenyTT.Core.Domain
   , Neutral(..)
   , Clo(..)
   , Value(..)
+  , Env(..)
+  -- * Environments
+  , bindVal
+  , bindTp
+  -- * Smart Constructors
   , var
   , global
   ) where
 
 import TeenyTT.Core.Ident
-import TeenyTT.Core.Env
+import TeenyTT.Core.Env (Level, Index)
+import TeenyTT.Core.Env qualified as Env
 
 import TeenyTT.Core.Syntax qualified as S
 
+-- [FIXME: Reed M, 05/11/2021] I should add a monoid instance here
+data Env = Env { tps :: Env.Env Type, vals :: Env.Env Value }
+    deriving (Show)
+
+instance Semigroup Env where
+    env0 <> env1 = Env { tps = tps env0 <> tps env1, vals = vals env0 <> vals env1 }
+
+instance Monoid Env where
+    mempty = Env { tps = mempty, vals = mempty }
+
 -- | A @Clo@ represents some environment, along with a piece of the syntax (IE: an 'S.Term' or 'S.Type')
 -- that binds an additional variable.
-data Clo a = Clo (Env Value) a
+data Clo a = Clo Env a
     deriving (Show)
 
 data Value

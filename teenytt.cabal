@@ -39,8 +39,10 @@ library
       TeenyTT.Core.Refiner.Pi
       TeenyTT.Core.Refiner.Structural
       TeenyTT.Core.Refiner.Univ
+      TeenyTT.Core.Splice
       TeenyTT.Core.Syntax
       TeenyTT.Core.Tactic
+      TeenyTT.Core.TermBuilder
       TeenyTT.Frontend.ConcreteSyntax
       TeenyTT.Frontend.Driver
       TeenyTT.Frontend.Elaborator
@@ -52,7 +54,7 @@ library
       Paths_teenytt
   hs-source-dirs:
       src
-  default-extensions: DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
+  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
   build-tools:
       alex
     , happy
@@ -71,7 +73,7 @@ executable teenytt-exe
       Paths_teenytt
   hs-source-dirs:
       app
-  default-extensions: DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
+  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -91,7 +93,7 @@ test-suite teenytt-test
       Paths_teenytt
   hs-source-dirs:
       test
-  default-extensions: DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
+  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array

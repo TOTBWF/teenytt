@@ -13,25 +13,37 @@ module TeenyTT.Core.Env
   , unLevel
   , level
   , findLevel
+  , last
   -- * Potentially Unsafe Operations
   , unsafeIndex
   , unsafeLevel
   ) where
 
+import Prelude hiding (last)
+
 import Data.Sequence (Seq(..))
 import Data.Sequence qualified as S
+
 
 --------------------------------------------------------------------------------
 -- Environments
 --
--- FIXME: Is 'Seq' the right data structure?
--- FIXME: Describe the invariants
+-- [FIXME: Reed M, 03/11/2021] Is 'Seq' the right data structure?
+-- [FIXME: Reed M, 03/11/2021] Describe the invariants
+-- [FIXME: Reed M, 05/11/2021] Rename to 'Telescope'
 
 data Env a = Env
     { bindings :: Seq a
     , size :: Int
     }
     deriving (Show, Functor)
+
+
+instance Semigroup (Env a) where
+    env0 <> env1 = Env { bindings = bindings env0 <> bindings env1, size = size env0 + size env1 }
+
+instance Monoid (Env a) where
+    mempty = Env { bindings = mempty, size = 0 }
 
 empty :: Env a
 empty = Env Empty 0
@@ -87,6 +99,10 @@ level (Level lvl) (Env {..}) = S.index bindings lvl
 
 findLevel :: (a -> Bool) -> Env a -> Maybe Level
 findLevel p (Env {..}) = Level <$> S.findIndexR p bindings
+
+-- | Get the level of the last thing bound.
+last :: Env a -> Level
+last env = Level (size env - 1)
 
 -- | 'unsafeLevel' has the potential to break the invariant that each level points
 -- to some valid place inside of an environment. To use this safely, ensure that
