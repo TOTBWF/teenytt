@@ -17,6 +17,6 @@ loadFile :: FilePath -> IO ()
 loadFile path = do
     bytes <- BS.readFile path
     divider
-    print $ P.tokens bytes
+    print $ P.tokens path bytes
     divider
-    print $ P.commands bytes
+    print $ P.commands path bytes

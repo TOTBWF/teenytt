@@ -49,6 +49,7 @@ library
       TeenyTT.Frontend.Parser.Lexer
       TeenyTT.Frontend.Parser.Monad
       TeenyTT.Frontend.Parser.Token
+      TeenyTT.Frontend.Position
   other-modules:
       Paths_teenytt
   hs-source-dirs:

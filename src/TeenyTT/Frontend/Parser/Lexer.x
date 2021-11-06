@@ -135,7 +135,7 @@ scan = do
     code <- startCode
     case alexScan input code of
       AlexEOF -> handleEOF
-      AlexError rest -> lexError rest
+      AlexError rest -> parseError "Lexer Error"
       AlexSkip rest len -> do
         setInput rest
         scan

@@ -6,7 +6,8 @@ module TeenyTT.Frontend.Parser.Monad
   , pushStartCode
   , popStartCode
   -- * Errors
-  , lexError
+  , ParseError(..)
+  , parseError
   -- * Tokens
   , token
   , token_
@@ -39,26 +40,29 @@ import Data.Text (Text)
 import Data.Text.Encoding qualified as TE
 import Data.Word (Word8)
 
+import TeenyTT.Frontend.Position
 import TeenyTT.Frontend.Parser.Token
 
-newtype Parser a = Parser { unParser :: StateT ParserState (Except ByteString) a }
-    deriving (Functor, Applicative, Monad, MonadState ParserState, MonadError ByteString)
+newtype Parser a = Parser { unParser :: StateT ParserState (Except ParseError) a }
+    deriving (Functor, Applicative, Monad, MonadState ParserState, MonadError ParseError)
 
 data ParserState =
-    ParserState { parseInput      :: {-# UNPACK #-} AlexInput
-                , parseStartCodes :: {-# UNPACK #-} (NonEmpty Int)
+    ParserState { parseInput      :: AlexInput
+                , parseStartCodes :: (NonEmpty Int)
                 , parseLayout     :: [Int]
+                , parseFile       :: FilePath
                 }
 
-initState :: [Int] -> ByteString -> ParserState
-initState codes bs =
+initState :: FilePath -> [Int] -> ByteString -> ParserState
+initState path codes bs =
     ParserState { parseInput      = Input 0 1 '\n' bs
                 , parseStartCodes = NE.fromList (codes ++ [0])
                 , parseLayout     = []
+                , parseFile       = path
                 }
 
-runParser :: [Int] -> ByteString -> Parser a -> Either ByteString a
-runParser codes bs lex = runExcept $ evalStateT (unParser lex) (initState codes bs)
+runParser :: FilePath -> [Int] -> ByteString -> Parser a -> Either ParseError a
+runParser path codes bs lex = runExcept $ evalStateT (unParser lex) (initState path codes bs)
 
 --------------------------------------------------------------------------------
 -- [NOTE: Start Codes]
@@ -95,9 +99,21 @@ popStartCode = modify' $ \st ->
 --------------------------------------------------------------------------------
 -- Errors
 
-lexError :: AlexInput -> Parser a
-lexError Input{..} =
-    throwError (BS.take 1 $ lexBytes)
+data ParseError = ParseError
+    { errPos      :: Position
+    , errPrevByte :: ByteString
+    , errMsg      :: Text
+    } deriving Show
+
+parseError :: Text -> Parser a
+parseError msg = do
+    pos <- getPosition
+    prevByte <- gets (BS.take 1 . lexBytes . parseInput)
+    throwError $ ParseError
+        { errPos = pos
+        , errPrevByte = prevByte
+        , errMsg = msg
+        }
 
 --------------------------------------------------------------------------------
 -- Tokens
@@ -140,6 +156,21 @@ getInput = gets parseInput
 {-# INLINE getColumn #-}
 getColumn :: Parser Int
 getColumn = gets (lexCol . parseInput)
+
+{-# INLINE getLine #-}
+getLine :: Parser Int
+getLine = gets (lexLine . parseInput)
+
+getPosition :: Parser Position
+getPosition = do
+    state <- get
+    let input = parseInput state
+    pure $ Position
+        { posLine = lexLine input
+        , posCol  = lexCol input
+        , posFile = parseFile state
+        }
+
 
 --------------------------------------------------------------------------------
 -- Alex Primitives

@@ -13,11 +13,12 @@ import TeenyTT.Frontend.Parser.Token (Token)
 
 import TeenyTT.Frontend.Parser.Grammar qualified as P
 import TeenyTT.Frontend.Parser.Lexer qualified as L
+import System.IO (FilePath)
 
-tokens :: ByteString -> Either ByteString [Token]
-tokens bs = runParser [L.layout] bs L.lexer
+tokens :: FilePath -> ByteString -> Either ParseError [Token]
+tokens path bs = runParser path [L.layout] bs L.lexer
 
-commands :: ByteString -> Either ByteString [Command]
-commands bs = runParser [L.layout] bs $ do
+commands :: FilePath -> ByteString -> Either ParseError [Command]
+commands path bs = runParser path [L.layout] bs $ do
     toks <- L.lexer
     P.toplevel toks

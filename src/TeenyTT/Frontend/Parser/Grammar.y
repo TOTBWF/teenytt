@@ -31,7 +31,7 @@ import TeenyTT.Core.Ident
 %name expr expr
 %tokentype { T.Token }
 %monad { Parser }
-%error { parseError }
+%error { failure }
 
 %token
   name   { T.Identifier $$ }
@@ -118,7 +118,7 @@ atoms xs = case NE.reverse xs of
 --------------------------------------------------------------------------------
 -- Error Handling
 
-parseError :: [T.Token] -> Parser a
-parseError [] = throwError $ "ParseError: Empty token stream."
-parseError (tok:_) = throwError $ fromString $ "ParseError: Unexpected token '" <> show tok <> "'."
+failure :: [T.Token] -> Parser a
+failure [] = parseError $ "ParseError: Empty token stream."
+failure (tok:_) = parseError $ fromString $ "ParseError: Unexpected token '" <> show tok <> "'."
 }
