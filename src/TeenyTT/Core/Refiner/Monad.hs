@@ -7,6 +7,7 @@ module TeenyTT.Core.Refiner.Monad
   -- * Errors
   , unboundVariable
   , goalMismatch
+  , invalidLiteral
   -- * Variable
   , scope
   , Resolved(..)
@@ -23,7 +24,7 @@ import Control.Monad.Reader
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Env (Env, Index, Level)
 import TeenyTT.Core.Env qualified as Env
-import TeenyTT.Core.Error (Error(..), Connective)
+import TeenyTT.Core.Error (Error(..), Literal, Connective)
 import TeenyTT.Core.Error qualified as Err
 
 import TeenyTT.Core.Conversion
@@ -92,6 +93,11 @@ goalMismatch :: Connective -> D.Type -> RM a
 goalMismatch expected actual = do
     qtp <- liftQuote $ quoteTp actual
     failure $ GoalMismatch expected qtp
+
+invalidLiteral :: Literal -> D.Type -> RM a
+invalidLiteral lit tp = do
+    qtp <- liftQuote $ quoteTp tp
+    failure $ InvalidLiteral lit qtp
 
 hoistErr :: Either Error a -> RM a
 hoistErr (Left err) = failure err

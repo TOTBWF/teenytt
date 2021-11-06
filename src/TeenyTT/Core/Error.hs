@@ -1,5 +1,6 @@
 module TeenyTT.Core.Error
   ( Error(..)
+  , Literal(..)
   , Connective(..)
   ) where
 
@@ -13,10 +14,22 @@ data Error
     | TpMismatch Connective D.Type
     | GoalMismatch Connective S.Type
     | UnboundVariable Ident
+    | InvalidLiteral Literal S.Type
     | QuotationMismatch D.Type D.Value
+    | ExpectedEqual D.Value D.Value
     | ExpectedEqualTp D.Type D.Type
-    deriving Show
+    | ExpectedEqualHead D.Head D.Head
+    | ExpectedSpineEqual [D.Frame] [D.Frame]
+    deriving (Show)
+
+data Literal
+    = NatLit Int
+    deriving (Show)
 
 data Connective
     = Pi
+    | Nat
+    | El D.Type
+    | Univ Int
+    | Small
     deriving (Show)
