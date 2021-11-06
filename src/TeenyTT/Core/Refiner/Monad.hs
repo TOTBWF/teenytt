@@ -59,10 +59,11 @@ data RefineEnv = RefineEnv
     }
 
 -- | Construct an evaluation environment from a refiner environment.
-evalEnv :: RefineEnv -> EvalEnv
+evalEnv :: RefineEnv -> D.Env
 evalEnv RefineEnv{..} =
-    EvalEnv { env_locals = fmap (fst . contents) rm_locals
-            }
+    D.Env { D.vals = fmap (fst . contents) rm_locals
+          , D.tps = Env.empty
+          }
 
 quoteEnv :: RefineEnv -> QuoteEnv
 quoteEnv RefineEnv{..} =

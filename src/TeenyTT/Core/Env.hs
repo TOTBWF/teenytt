@@ -4,6 +4,7 @@ module TeenyTT.Core.Env
   , empty
   , extend
   , push
+  , drop
   , Index
   , unIndex
   , index
@@ -19,7 +20,7 @@ module TeenyTT.Core.Env
   , unsafeLevel
   ) where
 
-import Prelude hiding (last)
+import Prelude hiding (last, drop)
 
 import Data.Sequence (Seq(..))
 import Data.Sequence qualified as S
@@ -32,6 +33,8 @@ import Data.Sequence qualified as S
 -- [FIXME: Reed M, 03/11/2021] Describe the invariants
 -- [FIXME: Reed M, 05/11/2021] Rename to 'Telescope'
 
+-- | An Environment.
+-- Invariant: @length bindings == size@.
 data Env a = Env
     { bindings :: Seq a
     , size :: Int
@@ -57,6 +60,12 @@ extend (Env {..}) x = Env { bindings = bindings :|> x, size = size + 1 }
 -- length.
 push :: Env a -> (Level -> a) -> Env a
 push (Env {..}) f = Env { bindings = bindings :|> (f $ Level size), size = size + 1 }
+
+-- | Get the top variable off an environment.
+-- Invariant: The environment must be non-empty.
+drop :: Env a -> Env a
+drop (Env { bindings = xs :|> _, .. }) = Env { bindings = xs, size = size - 1 }
+drop (Env { bindings = Empty}) = error "Invariant Violated: tried to drop a binding off an empty environment."
 
 --------------------------------------------------------------------------------
 -- DeBrujin Indexes

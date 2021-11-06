@@ -64,6 +64,23 @@ data Type
     | Pi Ident Type (Clo S.Type)
     deriving (Show)
 
+--------------------------------------------------------------------------------
+-- Environments
+
+bindVal :: Value -> Env -> Env
+bindVal val env = env { vals = Env.extend (vals env) val }
+
+bindTp :: Type -> Env -> Env
+bindTp tp env = env { tps = Env.extend (tps env) tp }
+
+cloEnv :: Clo a -> Env
+cloEnv (Clo env _) = env
+
+
+
+--------------------------------------------------------------------------------
+-- Helpers for constructing domain values.
+
 var :: Level -> Type -> Value
 var lvl tp = Cut (Neutral (Local lvl) []) tp
 
