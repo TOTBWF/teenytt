@@ -75,6 +75,10 @@ quote (D.Pi x base fam) v =
     ret <- app v arg
     quote fib ret
 quote _ (D.Cut neu tp) = quoteNeu tp neu
+quote univ (D.Rel tp small) = do
+    qtp <- quoteTp tp
+    qsmall <- quote (D.Small tp univ) small
+    pure $ S.Rel qtp qsmall
 quote tp v = failure $ QuotationMismatch tp v
 
 quoteNeu :: D.Type -> D.Neutral -> QuM S.Term
@@ -85,7 +89,6 @@ quoteNeu tp (D.Neutral {hd = D.Global lvl u, frames}) =
     shouldUnfold >>= \case
       UnfoldNone -> quoteSpine (S.Global lvl) frames
       UnfoldAll -> quote tp u
-
 
 quoteSpine :: S.Term -> [D.Frame] -> QuM S.Term
 quoteSpine tm [] = pure tm
@@ -110,10 +113,21 @@ quoteTpClo base fam =
       quoteTp tp
 
 quoteTp :: D.Type -> QuM S.Type
-quoteTp D.Univ = pure S.Univ
+quoteTp (D.Univ l) = pure $ S.Univ l
 quoteTp D.Nat = pure S.Nat
 quoteTp (D.Pi x base fam) = do
     qbase <- quoteTp base
     qfam <- quoteTpClo base fam
     pure $ S.Pi x qbase qfam
-
+quoteTp (D.El univ code) = do
+    quniv <- quoteTp univ
+    qcode <- quote univ code
+    pure $ S.El quniv qcode
+quoteTp (D.ElCut univ neu) = do
+    quniv <- quoteTp univ
+    qneu <- quoteNeu univ neu
+    pure $ S.El quniv qneu
+quoteTp (D.Small tp univ) = do
+    qtp <- quoteTp tp
+    quniv <- quoteTp univ
+    pure $ S.Small qtp quniv
