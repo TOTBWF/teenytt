@@ -36,7 +36,9 @@ library
       TeenyTT.Core.Ident
       TeenyTT.Core.Quote
       TeenyTT.Core.Refiner.Monad
+      TeenyTT.Core.Refiner.Nat
       TeenyTT.Core.Refiner.Pi
+      TeenyTT.Core.Refiner.Small
       TeenyTT.Core.Refiner.Structural
       TeenyTT.Core.Refiner.Univ
       TeenyTT.Core.Splice
