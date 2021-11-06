@@ -12,6 +12,7 @@ module TeenyTT.Core.Eval
   , evalTp
   -- * Semantic Operations
   , app
+  -- , el
   ) where
 
 import Control.Monad.Reader
@@ -100,7 +101,7 @@ eval (S.Global lvl) = do
 eval (S.Lam x body) = do
     clo <- capture body
     pure $ D.Lam x clo
-eval (S.App f a)    = do
+eval (S.App f a) = do
     vf <- eval f
     va <- eval a
     app vf va
@@ -108,15 +109,32 @@ eval S.Zero = pure D.Zero
 eval (S.Suc n) = do
     vn <- eval n
     pure $ D.Suc vn
+eval (S.Rel tp small) = do
+    vtp <- evalTp tp
+    vsmall <- eval small
+    pure $ D.Rel vtp vsmall
+eval S.NatSmall = pure D.NatSmall
+eval (S.PiSmall base fam) = do
+    vbase <- eval base
+    vfam <- eval fam
+    pure $ D.PiSmall vbase vfam
 eval (S.Subst sub tm) = evalSubst sub $ eval tm
 
 evalTp :: S.Type -> EvM D.Type
-evalTp S.Univ = pure D.Univ
+evalTp (S.Univ l) = pure $ D.Univ l
 evalTp S.Nat = pure D.Nat
 evalTp (S.Pi x base fam) = do
     vbase <- evalTp base
     clo <- capture fam
     pure $ D.Pi x vbase clo
+evalTp (S.El univ code) = do
+    vuniv <- evalTp univ
+    vcode <- eval code
+    el vuniv vcode
+evalTp (S.Small tp univ) = do
+    vtp <- evalTp tp
+    vuniv <- evalTp univ
+    pure $ D.Small vtp vuniv
 evalTp (S.TpVar ix) =
     getLocalTp ix
 evalTp (S.TpSubst sub tp) = evalSubst sub $ evalTp tp
@@ -156,6 +174,12 @@ app (D.Cut neu (D.Pi _ base fam)) ~a = do
     fib <- instTpClo fam a
     cut neu fib (D.App base a) (\f -> app f a)
 app f                   ~_ = failure $ Err.ValMismatch Err.Pi f
+
+-- [FIXME: Reed M, 05/11/2021] Is 'el' on a cut handled properly?
+el :: (MonadCmp m) => D.Type -> D.Value -> m D.Type
+el univ (D.Rel tp small) = pure tp
+el univ (D.Cut neu _) = pure $ D.ElCut univ neu
+el univ v = failure $ Err.ValMismatch (Err.El univ) v
 
 -- | Push a new 'D.Frame' onto a 'D.Neutral' value, potentially updating the global's unfolding.
 cut :: (MonadCmp m) => D.Neutral -> D.Type -> D.Frame -> (D.Value -> m D.Value) -> m D.Value
