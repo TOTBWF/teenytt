@@ -47,7 +47,7 @@ library
       TeenyTT.Frontend.Parser
       TeenyTT.Frontend.Parser.Grammar
       TeenyTT.Frontend.Parser.Lexer
-      TeenyTT.Frontend.Parser.Lexer.Monad
+      TeenyTT.Frontend.Parser.Monad
       TeenyTT.Frontend.Parser.Token
   other-modules:
       Paths_teenytt

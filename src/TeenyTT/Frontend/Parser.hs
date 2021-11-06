@@ -1,22 +1,23 @@
 module TeenyTT.Frontend.Parser
-  ( debugLexer
+  ( tokens
+  , commands
   ) where
 
 import Data.ByteString (ByteString)
 
-import TeenyTT.Frontend.Parser.Grammar
-import TeenyTT.Frontend.Parser.Lexer
 
 import TeenyTT.Frontend.ConcreteSyntax
+
+import TeenyTT.Frontend.Parser.Monad
 import TeenyTT.Frontend.Parser.Token (Token)
-import TeenyTT.Frontend.Parser.Lexer
-import TeenyTT.Frontend.Parser.Lexer.Monad
 
+import TeenyTT.Frontend.Parser.Grammar qualified as P
+import TeenyTT.Frontend.Parser.Lexer qualified as L
 
-debugLexer :: ByteString -> Either ByteString [Token]
-debugLexer bs = runLexer bs lexer
+tokens :: ByteString -> Either ByteString [Token]
+tokens bs = runParser [L.layout] bs L.lexer
 
--- parseExpr :: String -> Either String Expr
--- parseExpr str =
---     let toks = lexer str
---     in exprParser toks
+commands :: ByteString -> Either ByteString [Command]
+commands bs = runParser [L.layout] bs $ do
+    toks <- L.lexer
+    P.toplevel toks

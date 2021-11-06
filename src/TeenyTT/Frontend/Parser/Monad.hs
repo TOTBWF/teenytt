@@ -1,7 +1,6 @@
--- [FIXME: Reed M, 06/11/2021] Rename this to TeenyTT.Frontend.Parser.Monad
-module TeenyTT.Frontend.Parser.Lexer.Monad
-  ( Lexer
-  , runLexer
+module TeenyTT.Frontend.Parser.Monad
+  ( Parser
+  , runParser
   -- * Start Codes
   , startCode
   , pushStartCode
@@ -42,24 +41,24 @@ import Data.Word (Word8)
 
 import TeenyTT.Frontend.Parser.Token
 
-newtype Lexer a = Lexer { unLexer :: StateT LexerState (Except ByteString) a }
-    deriving (Functor, Applicative, Monad, MonadState LexerState, MonadError ByteString)
+newtype Parser a = Parser { unParser :: StateT ParserState (Except ByteString) a }
+    deriving (Functor, Applicative, Monad, MonadState ParserState, MonadError ByteString)
 
-data LexerState =
-    LexerState { lexInput      :: {-# UNPACK #-} AlexInput
-               , lexStartCodes :: {-# UNPACK #-} (NonEmpty Int)
-               , lexLayout     :: [Int]
-               }
+data ParserState =
+    ParserState { parseInput      :: {-# UNPACK #-} AlexInput
+                , parseStartCodes :: {-# UNPACK #-} (NonEmpty Int)
+                , parseLayout     :: [Int]
+                }
 
-initState :: [Int] -> ByteString -> LexerState
+initState :: [Int] -> ByteString -> ParserState
 initState codes bs =
-    LexerState { lexInput      = Input 0 1 '\n' bs
-               , lexStartCodes = NE.fromList (codes ++ [0])
-               , lexLayout     = []
-               }
+    ParserState { parseInput      = Input 0 1 '\n' bs
+                , parseStartCodes = NE.fromList (codes ++ [0])
+                , parseLayout     = []
+                }
 
-runLexer :: [Int] -> ByteString -> Lexer a -> Either ByteString a
-runLexer codes bs lex = runExcept $ evalStateT (unLexer lex) (initState codes bs)
+runParser :: [Int] -> ByteString -> Parser a -> Either ByteString a
+runParser codes bs lex = runExcept $ evalStateT (unParser lex) (initState codes bs)
 
 --------------------------------------------------------------------------------
 -- [NOTE: Start Codes]
@@ -76,19 +75,19 @@ runLexer codes bs lex = runExcept $ evalStateT (unLexer lex) (initState codes bs
 -- See Section 3.2.2.2 of the Alex Manual for more info.
 
 -- | Get the current start code.
-startCode :: Lexer Int
-startCode = gets (NE.head . lexStartCodes)
+startCode :: Parser Int
+startCode = gets (NE.head . parseStartCodes)
 
 -- | Push a new start code to the stack.
-pushStartCode :: Int -> Lexer ()
+pushStartCode :: Int -> Parser ()
 pushStartCode code = modify' $ \st ->
-  st { lexStartCodes = code <| (lexStartCodes st) }
+  st { parseStartCodes = code <| (parseStartCodes st) }
 
 -- | Pop a start code off the stack.
-popStartCode :: Lexer ()
+popStartCode :: Parser ()
 popStartCode = modify' $ \st ->
-  st { lexStartCodes =
-       case lexStartCodes st of
+  st { parseStartCodes =
+       case parseStartCodes st of
          _ :| []     -> 0 :| []
          _ :| (x:xs) -> x :| xs
        }
@@ -96,7 +95,7 @@ popStartCode = modify' $ \st ->
 --------------------------------------------------------------------------------
 -- Errors
 
-lexError :: AlexInput -> Lexer a
+lexError :: AlexInput -> Parser a
 lexError Input{..} =
     throwError (BS.take 1 $ lexBytes)
 
@@ -104,43 +103,43 @@ lexError Input{..} =
 -- Tokens
 
 {-# INLINE token #-}
-token :: (Text -> Token) -> ByteString -> Lexer Token
+token :: (Text -> Token) -> ByteString -> Parser Token
 token k bs = pure (k $ TE.decodeUtf8 bs)
 
 {-# INLINE token_ #-}
-token_ :: Token -> ByteString -> Lexer Token
+token_ :: Token -> ByteString -> Parser Token
 token_ tok _ = pure tok
 
 --------------------------------------------------------------------------------
 -- Layout
 
 {-# INLINE openBlock #-}
-openBlock :: Int -> Lexer ()
-openBlock cols = modify' $ \s -> s { lexLayout = cols:(lexLayout s) }
+openBlock :: Int -> Parser ()
+openBlock cols = modify' $ \s -> s { parseLayout = cols:(parseLayout s) }
 
 {-# INLINE closeBlock #-}
-closeBlock :: Lexer ()
-closeBlock = modify' $ \s -> s { lexLayout = drop 1 $ lexLayout s }
+closeBlock :: Parser ()
+closeBlock = modify' $ \s -> s { parseLayout = drop 1 $ parseLayout s }
 
 {-# INLINE currentBlock #-}
-currentBlock :: Lexer (Maybe Int)
-currentBlock = gets (listToMaybe . lexLayout)
+currentBlock :: Parser (Maybe Int)
+currentBlock = gets (listToMaybe . parseLayout)
 
 
 --------------------------------------------------------------------------------
 -- State Management
 
 {-# INLINE setInput #-}
-setInput :: AlexInput -> Lexer ()
-setInput input = modify $ \s -> s { lexInput = input }
+setInput :: AlexInput -> Parser ()
+setInput input = modify $ \s -> s { parseInput = input }
 
 {-# INLINE getInput #-}
-getInput :: Lexer AlexInput
-getInput = gets lexInput
+getInput :: Parser AlexInput
+getInput = gets parseInput
 
 {-# INLINE getColumn #-}
-getColumn :: Lexer Int
-getColumn = gets (lexCol . lexInput)
+getColumn :: Parser Int
+getColumn = gets (lexCol . parseInput)
 
 --------------------------------------------------------------------------------
 -- Alex Primitives

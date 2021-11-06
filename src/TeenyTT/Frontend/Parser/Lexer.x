@@ -4,7 +4,7 @@ module TeenyTT.Frontend.Parser.Lexer where
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 
-import TeenyTT.Frontend.Parser.Lexer.Monad
+import TeenyTT.Frontend.Parser.Monad
 import TeenyTT.Frontend.Parser.Token
 
 
@@ -56,11 +56,11 @@ tokens :-
 <eof> () { emitEOF }
 
 {
-handleEOF :: Lexer Token
+handleEOF :: Parser Token
 handleEOF = pushStartCode eof *> scan
 
 -- | Closes out any layout blocks if they exist, and then emits an 'EOF' token.
-emitEOF :: ByteString -> Lexer Token
+emitEOF :: ByteString -> Parser Token
 emitEOF _ = do
   block <- currentBlock
   case block of
@@ -71,7 +71,7 @@ emitEOF _ = do
       popStartCode
       pure EOF
 
-startLayout :: ByteString -> Lexer Token
+startLayout :: ByteString -> Parser Token
 startLayout _ = do
   popStartCode
   block <- currentBlock
@@ -87,7 +87,7 @@ startLayout _ = do
 
   pure BlockOpen
 
-emptyLayout :: ByteString -> Lexer Token
+emptyLayout :: ByteString -> Parser Token
 emptyLayout _ = do
   popStartCode
   pushStartCode newline
@@ -97,7 +97,7 @@ emptyLayout _ = do
 --   a newline, and determines if we ought to continue with
 --   our current layout block or not based off of the indentation
 --   of the first token we encounter.
-offsides :: ByteString -> Lexer Token
+offsides :: ByteString -> Parser Token
 offsides _ = do
   block <- currentBlock
   col <- getColumn
@@ -129,7 +129,7 @@ offsides _ = do
       popStartCode
       scan
 
-scan :: Lexer Token
+scan :: Parser Token
 scan = do
     input <- getInput
     code <- startCode
@@ -143,7 +143,7 @@ scan = do
         setInput rest
         action (slice nbytes input)
 
-lexer :: Lexer [Token]
+lexer :: Parser [Token]
 lexer = do
     tok <- scan
     case tok of

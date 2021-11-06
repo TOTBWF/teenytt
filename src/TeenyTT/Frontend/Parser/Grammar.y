@@ -11,8 +11,8 @@ import Data.List.NonEmpty qualified as NE
 -- FIXME: Hack
 import Data.String
 
-import qualified TeenyTT.Frontend.Parser.Token as T
-import TeenyTT.Frontend.Parser.Lexer.Monad
+import TeenyTT.Frontend.Parser.Token qualified as T
+import TeenyTT.Frontend.Parser.Monad
 
 import TeenyTT.Frontend.ConcreteSyntax
 import TeenyTT.Core.Ident
@@ -23,7 +23,7 @@ import TeenyTT.Core.Ident
 %name toplevel toplevel
 %name expr expr
 %tokentype { T.Token }
-%monad { Lexer }
+%monad { Parser }
 %error { parseError }
 
 %token
@@ -108,7 +108,7 @@ atoms xs = case NE.reverse xs of
 --------------------------------------------------------------------------------
 -- Error Handling
 
-parseError :: [T.Token] -> Lexer a
+parseError :: [T.Token] -> Parser a
 parseError [] = throwError $ "ParseError: Empty token stream."
 parseError (tok:_) = throwError $ fromString $ "ParseError: Unexpected token '" <> show tok <> "'."
 }
