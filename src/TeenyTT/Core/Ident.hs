@@ -31,3 +31,6 @@ instance IsString Ident where
 instance Debug Ident where
     dump (User txt) = pretty txt
     dump Anon       = "_"
+
+instance Debug a => Debug (Cell a) where
+    dump Cell{..} = dump ident <+> ":" <+> dump contents

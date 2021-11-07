@@ -45,7 +45,7 @@ data Env a = Env
     { bindings :: Seq a
     , size :: Int
     }
-    deriving (Show, Functor, Generic)
+    deriving (Show, Functor, Foldable, Traversable, Generic)
 
 instance NFData a => NFData (Env a)
 

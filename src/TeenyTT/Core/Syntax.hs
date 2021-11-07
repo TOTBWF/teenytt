@@ -24,6 +24,7 @@ data Term
     | Local Index
     | Global Level
     | Subst Subst Term
+    | Hole Ident Type
     deriving (Show, Generic)
 
 instance NFData Term
@@ -69,6 +70,7 @@ instance Debug Term where
     dump (Local ix) = dump ix
     dump (Global lvl) = dump lvl
     dump (Subst sub tm) = brackets (dump sub <+> dump tm)
+    dump (Hole nm tp) = "?" <> dump nm <+> parens (dump tp)
 
 instance Debug Type where
     dump (Univ i) = "Type" <+> pretty i

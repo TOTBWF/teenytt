@@ -13,6 +13,7 @@ module TeenyTT.Core.Domain
   -- * Smart Constructors
   , var
   , global
+  , hole
   ) where
 
 import GHC.Generics
@@ -69,6 +70,7 @@ instance NFData Neutral
 data Head
     = Local Level
     | Global Level ~Value
+    | Hole Ident
     deriving (Show, Generic)
 
 instance NFData Head
@@ -111,6 +113,9 @@ var lvl tp = Cut (Neutral (Local lvl) []) tp
 global :: Level -> Value -> Type -> Value
 global lvl ~u tp = Cut (Neutral (Global lvl u) []) tp
 
+hole :: Ident -> Type -> Value
+hole nm tp = Cut (Neutral (Hole nm) []) tp
+
 --------------------------------------------------------------------------------
 -- Pretty Printing
 
@@ -142,6 +147,7 @@ instance Debug Neutral where
 instance Debug Head where
     dump (Local lvl) = dump lvl
     dump (Global lvl _) = dump lvl
+    dump (Hole nm) = "?" <> dump nm
 
 instance Debug Frame where
     dump (App tp v) = parens (dump v <+> colon <+> dump tp)

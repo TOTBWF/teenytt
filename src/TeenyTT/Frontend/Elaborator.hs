@@ -18,6 +18,7 @@ import TeenyTT.Core.Syntax qualified as S
 import TeenyTT.Core.Tactic as T
 
 import TeenyTT.Core.Refiner.El qualified as El
+import TeenyTT.Core.Refiner.Hole qualified as Hole
 import TeenyTT.Core.Refiner.Nat qualified as Nat
 import TeenyTT.Core.Refiner.Pi qualified as Pi
 import TeenyTT.Core.Refiner.Structural qualified as Structural
@@ -35,6 +36,7 @@ chkTm (CS.Lam xs body) = foldr (\x tac -> Pi.intro x (\_ -> tac)) (chkTm body) x
 chkTm (CS.Zero) = Nat.zero
 chkTm (CS.Suc e) = Nat.suc (chkTm e)
 chkTm (CS.NatLit n) = Nat.literal n
+chkTm (CS.Hole) = Hole.unleash
 chkTm e = T.chk (synTm e)
 
 synTm :: CS.Expr -> T.Syn

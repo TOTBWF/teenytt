@@ -38,9 +38,11 @@ library
       TeenyTT.Core.Pretty.Unicode
       TeenyTT.Core.Quote
       TeenyTT.Core.Refiner.El
+      TeenyTT.Core.Refiner.Hole
       TeenyTT.Core.Refiner.Monad
       TeenyTT.Core.Refiner.Nat
       TeenyTT.Core.Refiner.Pi
+      TeenyTT.Core.Refiner.Probe
       TeenyTT.Core.Refiner.Small
       TeenyTT.Core.Refiner.Structural
       TeenyTT.Core.Refiner.Univ
