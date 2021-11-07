@@ -2,12 +2,21 @@ module TeenyTT.Frontend.Driver
   ( loadFile
   ) where
 
+import Data.ByteString (ByteString)
+import Data.ByteString qualified as BS
+
 import Data.Text (Text)
 import Data.Text qualified as T
 
-import TeenyTT.Frontend.Parser
+import TeenyTT.Frontend.Parser qualified as P
+
+divider :: IO ()
+divider = putStrLn (replicate 80 '-')
 
 loadFile :: FilePath -> IO ()
 loadFile path = do
-    str <- readFile path
-    print =<< parseExpr str
+    bytes <- BS.readFile path
+    divider
+    print $ P.tokens path bytes
+    divider
+    print $ P.commands path bytes

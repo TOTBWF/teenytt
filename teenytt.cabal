@@ -51,7 +51,9 @@ library
       TeenyTT.Frontend.Parser
       TeenyTT.Frontend.Parser.Grammar
       TeenyTT.Frontend.Parser.Lexer
+      TeenyTT.Frontend.Parser.Monad
       TeenyTT.Frontend.Parser.Token
+      TeenyTT.Frontend.Position
   other-modules:
       Paths_teenytt
   hs-source-dirs:
@@ -63,6 +65,7 @@ library
   build-depends:
       array
     , base >=4.7 && <5
+    , bytestring
     , containers
     , mtl
     , text
@@ -80,6 +83,7 @@ executable teenytt-exe
   build-depends:
       array
     , base >=4.7 && <5
+    , bytestring
     , containers
     , mtl
     , optparse-applicative
@@ -100,6 +104,7 @@ test-suite teenytt-test
   build-depends:
       array
     , base >=4.7 && <5
+    , bytestring
     , containers
     , mtl
     , teenytt
