@@ -30,6 +30,7 @@ dependencies:
 - criterion-measurement
 - mtl
 - prettyprinter
+- silently
 - text
 - transformers
 
