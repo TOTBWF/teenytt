@@ -12,12 +12,13 @@ module TeenyTT.Frontend.Driver.Monad
   , getGlobals
   , getGlobal
   , bindGlobal
+  -- * Debug
+  , setDebugMode
+  , getDebugMode
   -- * Output
+  , LogLevel(..)
   , message
-  , warning
-  , failure
   , divider
-  , debugPrint
   ) where
 
 import Control.Monad.State.Strict
@@ -49,14 +50,16 @@ newtype Driver a = Driver { unDriver :: StateT DriverState IO a }
 -- [FIXME: Reed M, 07/11/2021] The globals uses a bad data structure. I should
 -- split the bindings + name resolution up
 data DriverState = DriverState
-    { globals  :: Env (Cell (D.Value, D.Type))
-    , typeAnns :: Map Ident D.Type
+    { globals   :: Env (Cell (D.Value, D.Type))
+    , typeAnns  :: Map Ident D.Type
+    , debugMode :: Bool
     }
 
 initState :: DriverState
 initState = DriverState
     { globals = mempty
     , typeAnns = mempty
+    , debugMode = False
     }
 
 runDriver :: Driver a -> IO a
@@ -110,21 +113,35 @@ bindGlobal x val tp =
     modify' (\s -> s { globals = Env.extend (globals s) (Cell x (val, tp)) })
 
 --------------------------------------------------------------------------------
+-- Debugging
+
+setDebugMode :: Bool -> Driver ()
+setDebugMode b = modify' (\s -> s { debugMode = b })
+
+getDebugMode :: Driver Bool
+getDebugMode = gets debugMode
+
+
+--------------------------------------------------------------------------------
 -- Output
 -- [TODO: Reed M, 07/11/2021] Make messages/errors prettier
+
+data LogLevel
+    = Debug
+    | Info
+    | Warning
+    | Error
 
 divider :: Driver ()
 divider = liftIO $ putStrLn (replicate 80 '-')
 
-message :: Doc ann -> Driver ()
-message msg = putDocLn ("Info:" <+> msg)
-
-warning :: Text -> Driver ()
-warning msg = liftIO $ TIO.putStrLn ("Warning: " <> msg)
-
-failure :: Doc ann -> Driver ()
-failure err = putDocLn ("Error:" <+> err)
-
-debugPrint :: (Debug a) => a -> Driver ()
-debugPrint a = liftIO $ do
-    putDocLn $ dump a
+message :: LogLevel -> Doc ann -> Driver ()
+message Debug msg = do
+    dbg <- getDebugMode
+    when dbg $ putDocLn ("Debug:" <+> msg)
+message Info msg =
+    putDocLn ("Info:" <+> msg)
+message Warning msg =
+    putDocLn ("Warning:" <+> msg)
+message Error msg =
+    putDocLn ("Error:" <+> msg)

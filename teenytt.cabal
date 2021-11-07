@@ -52,7 +52,6 @@ library
       TeenyTT.Core.TermBuilder
       TeenyTT.Frontend.ConcreteSyntax
       TeenyTT.Frontend.Driver
-      TeenyTT.Frontend.Driver.Debug
       TeenyTT.Frontend.Driver.Monad
       TeenyTT.Frontend.Elaborator
       TeenyTT.Frontend.Parser

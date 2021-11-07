@@ -8,6 +8,7 @@ import GHC.Generics
 import Control.DeepSeq
 import Data.Text (Text)
 
+import TeenyTT.Core.Pretty
 import TeenyTT.Core.Ident
 
 data Expr
@@ -25,6 +26,10 @@ data Expr
     deriving (Show, Generic)
 
 instance NFData Expr
+
+-- [FIXME: Reed M, 07/11/2021] Actually implement this
+instance Debug Expr where
+    dump = pretty . show
 
 data Command
     = TypeAnn Ident Expr

@@ -2,6 +2,7 @@ module TeenyTT.Frontend.Driver
   ( runDriver
   , loadFile
   , benchFile
+  , withDebug
   ) where
 
 import Control.DeepSeq
@@ -46,19 +47,29 @@ import TeenyTT.Frontend.Driver.Monad
 
 elabChkTp :: CS.Expr -> Driver D.Type
 elabChkTp e = do
+    message Debug $ "Checking Type" <+> squotes (dump e)
     tp <- liftRM $ T.runTp $ Elab.chkTp e
-    liftRM $ RM.liftEval $ Eval.evalTp tp
+    message Debug $ "Elaborated Type" <+> squotes (dump tp)
+    vtp <- liftRM $ RM.liftEval $ Eval.evalTp tp
+    message Debug $ "Evaluated Type" <+> squotes (dump vtp)
+    pure vtp
 
 elabChkTm :: CS.Expr -> D.Type -> Driver (D.Value, D.Type)
 elabChkTm e tp = do
+    message Debug $ "Checking Term" <+> squotes (dump e) <+> "of type" <+> squotes (dump tp)
     tm <- liftRM $ T.runChk (Elab.chkTm e) tp
+    message Debug $ "Evaluating Term" <+> squotes (dump tm)
     vtm <- liftRM $ RM.liftEval $ Eval.eval tm
+    message Debug $ "Evaluated Term" <+> squotes (dump vtm)
     pure (vtm, tp)
 
 elabSynTm :: CS.Expr -> Driver (D.Value, D.Type)
 elabSynTm e = do
+    message Debug $ "Synthesizing Term" <+> squotes (dump e)
     (tm, tp) <- liftRM $ T.runSyn $ Elab.synTm e
+    message Debug $ "Elaborated Term" <+> squotes (dump tm) <+> "of type" <+> squotes (dump tp)
     vtm <- liftRM $ RM.liftEval $ Eval.eval tm
+    message Debug $ "Evaluated Term" <+> squotes (dump vtm)
     pure (vtm, tp)
 
 printBinding :: Ident -> D.Value -> D.Type -> Driver ()
@@ -66,7 +77,7 @@ printBinding x tm tp = do
     qtp <- liftRM $ RM.liftQuote $ Quote.quoteTp tp
     qtm <- liftRM $ RM.liftQuote $ Quote.quote tp tm
     divider
-    message $ nest 2 $ vsep
+    message Info $ nest 2 $ vsep
       [ "Printing" <+> pretty x
       , pretty x <+> colon <+> dump qtp
       , pretty x <+> equals <+> dump qtm
@@ -86,15 +97,25 @@ command (CS.Directive "print" [CS.Var x]) = do
     binding <- getGlobal x
     case binding of
       Just (tm, tp) -> printBinding x tm tp
-      Nothing -> failure ("No such variable" <+> squotes (pretty x))
-
+      Nothing       -> message Error $ "No such variable" <+> squotes (pretty x)
+command (CS.Directive "debug" [CS.Var (User "on")]) =
+    setDebugMode True
+command (CS.Directive "debug" [CS.Var (User "off")]) =
+    setDebugMode False
 command (CS.Directive dir _) =
-    failure $ "Unsupported Directive:" <+> squotes (pretty dir)
+    message Error $ "Unsupported Directive:" <+> squotes (pretty dir)
 
 loadFile :: FilePath -> Driver ()
 loadFile path = do
     bytes <- liftIO $ BS.readFile path
+
+    dbg <- getDebugMode 
+    when dbg $ do
+      toks <- hoistError $ P.tokens path bytes
+      message Debug (pretty $ show toks)
+
     cmds <- hoistError $ P.commands path bytes
+    message Debug (pretty $ show cmds)
     traverse_ command cmds
 
 --------------------------------------------------------------------------------
@@ -137,3 +158,11 @@ benchFile path (fromIntegral -> iters) = do
     cmds <- hoistError =<< benchOp "Parser" iters (P.commands path) bytes
     traverse_ (benchCommand iters) cmds
     pure ()
+
+--------------------------------------------------------------------------------
+-- Debugging
+
+withDebug :: Bool -> Driver () -> Driver ()
+withDebug dbg m = do
+    setDebugMode dbg
+    m
