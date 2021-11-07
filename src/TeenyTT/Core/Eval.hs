@@ -69,11 +69,11 @@ withLocals locals (EvM m) = liftCmp $ runReaderT m locals
 
 -- | Instantiate an 'S.Term' closure by providing a value for the additional variable binding.
 instTmClo :: (MonadCmp m) => (D.Clo S.Term) -> D.Value -> m D.Value
-instTmClo (D.Clo env tm) v = withLocals env $ eval tm
+instTmClo (D.Clo env tm) v = withLocals (D.bindVal v env) $ eval tm
 
 -- | Instantiate an 'S.Type' closure by providing a value for the additional variable binding.
 instTpClo :: (MonadCmp m) => (D.Clo S.Type) -> D.Value -> m D.Type
-instTpClo (D.Clo env tp) v = withLocals env $ evalTp tp
+instTpClo (D.Clo env tp) v = withLocals (D.bindVal v env) $ evalTp tp
 
 --------------------------------------------------------------------------------
 -- Splicing
