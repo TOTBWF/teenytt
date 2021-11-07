@@ -1,5 +1,5 @@
 module TeenyTT.Core.Eval
-  ( EvM
+  ( Eval
   , runEval
   , withLocals
   -- * Closures
@@ -34,11 +34,11 @@ import System.Environment (getEnvironment)
 -- | The Evaluation Monad.
 --
 -- All we need access to here are environments, and the ability to throw errors.
-newtype EvM a = EvM { unEvM :: ReaderT D.Env CmpM a }
-    deriving (Functor, Applicative, Monad, MonadReader D.Env, MonadCmp)
+newtype Eval a = Eval { unEval :: ReaderT D.Env Compute a }
+    deriving (Functor, Applicative, Monad, MonadReader D.Env, MonadCompute)
 
-runEval :: D.Env -> EvM a -> CmpM a
-runEval env (EvM m) = runReaderT m env
+runEval :: D.Env -> Eval a -> Compute a
+runEval env (Eval m) = runReaderT m env
 
 --------------------------------------------------------------------------------
 -- Variable + Environment Management
@@ -47,15 +47,15 @@ runEval env (EvM m) = runReaderT m env
 -- TODO: Link to a note about axioms
 
 -- | Lookup a local variable.
-getLocal :: Index -> EvM D.Value
+getLocal :: Index -> Eval D.Value
 getLocal ix = asks (Env.index ix . D.vals)
 
 -- | Lookup a type variable.
-getLocalTp :: Index -> EvM D.Type
+getLocalTp :: Index -> Eval D.Type
 getLocalTp ix = asks (Env.index ix . D.tps)
 
 -- | Capture the current environment into a closure.
-capture :: a -> EvM (D.Clo a)
+capture :: a -> Eval (D.Clo a)
 capture a = do
     locals <- ask
     pure $ D.Clo locals a
@@ -64,26 +64,26 @@ capture a = do
 -- Closures
 
 -- | Use a provided local environment for evaluation.
-withLocals :: (MonadCmp m) => D.Env -> EvM a -> m a
-withLocals locals (EvM m) = liftCmp $ runReaderT m locals
+withLocals :: (MonadCompute m) => D.Env -> Eval a -> m a
+withLocals locals (Eval m) = liftCompute $ runReaderT m locals
 
 -- | Instantiate an 'S.Term' closure by providing a value for the additional variable binding.
-instTmClo :: (MonadCmp m) => (D.Clo S.Term) -> D.Value -> m D.Value
+instTmClo :: (MonadCompute m) => (D.Clo S.Term) -> D.Value -> m D.Value
 instTmClo (D.Clo env tm) v = withLocals (D.bindVal v env) $ eval tm
 
 -- | Instantiate an 'S.Type' closure by providing a value for the additional variable binding.
-instTpClo :: (MonadCmp m) => (D.Clo S.Type) -> D.Value -> m D.Type
+instTpClo :: (MonadCompute m) => (D.Clo S.Type) -> D.Value -> m D.Type
 instTpClo (D.Clo env tp) v = withLocals (D.bindVal v env) $ evalTp tp
 
 --------------------------------------------------------------------------------
 -- Splicing
 
-splice :: (MonadCmp m) => Splice S.Term -> m D.Value
+splice :: (MonadCompute m) => Splice S.Term -> m D.Value
 splice sp =
     let (env, tm) = Splice.compile sp
     in withLocals env $ eval tm
 
-spliceTp :: (MonadCmp m) => Splice S.Type -> m D.Type
+spliceTp :: (MonadCompute m) => Splice S.Type -> m D.Type
 spliceTp sp =
     let (env, tp) = Splice.compile sp
     in withLocals env $ evalTp tp
@@ -92,7 +92,7 @@ spliceTp sp =
 -- Evaluation
 
 -- | Evaluate a term into a value.
-eval :: S.Term -> EvM D.Value
+eval :: S.Term -> Eval D.Value
 eval (S.Local ix)   = getLocal ix
 eval (S.Global lvl) = do
     -- See [NOTE: Global Variable Unfolding]
@@ -119,8 +119,11 @@ eval (S.PiSmall base fam) = do
     vfam <- eval fam
     pure $ D.PiSmall vbase vfam
 eval (S.Subst sub tm) = evalSubst sub $ eval tm
+eval (S.Hole nm tp) = do
+    vtp <- evalTp tp
+    pure (D.hole nm vtp)
 
-evalTp :: S.Type -> EvM D.Type
+evalTp :: S.Type -> Eval D.Type
 evalTp (S.Univ l) = pure $ D.Univ l
 evalTp S.Nat = pure D.Nat
 evalTp (S.Pi x base fam) = do
@@ -139,7 +142,7 @@ evalTp (S.TpVar ix) =
     getLocalTp ix
 evalTp (S.TpSubst sub tp) = evalSubst sub $ evalTp tp
 
-evalSubst :: S.Subst -> EvM a -> EvM a
+evalSubst :: S.Subst -> Eval a -> Eval a
 evalSubst S.Id m = m
 evalSubst (S.Comp sub0 sub1) m = evalSubst sub0 $ evalSubst sub1 m
 evalSubst S.Emp m = local (\env -> env { D.vals = mempty }) m
@@ -168,7 +171,7 @@ evalSubst (S.Extend sub tm) m = do
 
 
 -- | Apply a value to another value.
-app :: (MonadCmp m) => D.Value -> D.Value -> m D.Value
+app :: (MonadCompute m) => D.Value -> D.Value -> m D.Value
 app (D.Lam _ clo)       ~a = instTmClo clo a
 app (D.Cut neu (D.Pi _ base fam)) ~a = do
     fib <- instTpClo fam a
@@ -176,15 +179,15 @@ app (D.Cut neu (D.Pi _ base fam)) ~a = do
 app f                   ~_ = failure $ Err.ValMismatch Err.Pi f
 
 -- [FIXME: Reed M, 05/11/2021] Is 'el' on a cut handled properly?
-el :: (MonadCmp m) => D.Type -> D.Value -> m D.Type
+el :: (MonadCompute m) => D.Type -> D.Value -> m D.Type
 el univ (D.Rel tp small) = pure tp
 el univ (D.Cut neu _) = pure $ D.ElCut univ neu
 el univ v = failure $ Err.ValMismatch (Err.El univ) v
 
 -- | Push a new 'D.Frame' onto a 'D.Neutral' value, potentially updating the global's unfolding.
-cut :: (MonadCmp m) => D.Neutral -> D.Type -> D.Frame -> (D.Value -> m D.Value) -> m D.Value
-cut (D.Neutral (D.Local lvl) frms) tp frm _ =
-    pure $ D.Cut (D.Neutral (D.Local lvl) (frm : frms)) tp
+cut :: (MonadCompute m) => D.Neutral -> D.Type -> D.Frame -> (D.Value -> m D.Value) -> m D.Value
 cut (D.Neutral (D.Global lvl ~u) frms) tp frm ufold = do
     ~uf <- ufold u
     pure $ D.Cut (D.Neutral (D.Global lvl uf) (frm : frms)) tp
+cut (D.Neutral hd frms) tp frm _ =
+    pure $ D.Cut (D.Neutral hd (frm : frms)) tp

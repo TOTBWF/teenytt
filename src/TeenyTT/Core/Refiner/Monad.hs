@@ -13,6 +13,7 @@ module TeenyTT.Core.Refiner.Monad
   , Resolved(..)
   , resolve
   , getLocal
+  , getContext
   , getGlobal
   ) where
 
@@ -27,29 +28,34 @@ import TeenyTT.Core.Env qualified as Env
 import TeenyTT.Core.Error (Error(..), Literal, Connective)
 import TeenyTT.Core.Error qualified as Err
 
-import TeenyTT.Core.Conversion
-import TeenyTT.Core.Eval
-import TeenyTT.Core.Quote
 
-import TeenyTT.Core.Compute (MonadCmp(..), runCmp)
+import TeenyTT.Core.Eval (Eval(..))
+import TeenyTT.Core.Quote (Quote(..))
+import TeenyTT.Core.Conversion (Convert(..))
+
+import TeenyTT.Core.Eval qualified as Eval
+import TeenyTT.Core.Quote qualified as Quote
+import TeenyTT.Core.Conversion qualified as Convert
+
+import TeenyTT.Core.Compute (MonadCompute(..), runCompute)
 
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
 -- | The Refiner Monad.
-newtype RM a = RM { unRM :: ReaderT RefineEnv (Except Error) a }
+newtype RM a = RM { unRM :: ReaderT RefineEnv (ExceptT Error IO) a }
     deriving (Functor, Applicative, Monad, MonadReader RefineEnv)
 
-instance MonadCmp RM where
-    liftCmp m = RM $ ReaderT $ \RefineEnv{..} -> liftEither $ runCmp (fmap contents rm_globals) m
+instance MonadCompute RM where
+    liftCompute m = RM $ ReaderT $ \RefineEnv{..} -> ExceptT $ runCompute (fmap contents rm_globals) m
     failure err = RM $ throwError err
 
-runRM :: Env (Cell (D.Value, D.Type)) -> RM a -> Either Error a
+runRM :: Env (Cell (D.Value, D.Type)) -> RM a -> IO (Either Error a)
 runRM globals (RM m) =
     let env = RefineEnv { rm_locals = Env.empty
                         , rm_globals = globals
                         }
-    in runExcept $ runReaderT m env
+    in runExceptT $ runReaderT m env
 
 --------------------------------------------------------------------------------
 -- The Refiner Environment.
@@ -65,17 +71,15 @@ evalEnv RefineEnv{..} =
     D.Env { D.vals = fmap (fst . contents) rm_locals
           , D.tps = Env.empty
           }
+          
 
-quoteEnv :: RefineEnv -> QuoteEnv
+quoteEnv :: RefineEnv -> Quote.Env
 quoteEnv RefineEnv{..} =
-    QuoteEnv { qu_locals = Env.size rm_locals
-             , qu_unfold = UnfoldNone
-             }
+    Quote.Env { locals = Env.size rm_locals, unfold = Quote.UnfoldNone }
 
-convEnv :: RefineEnv -> ConvEnv
+convEnv :: RefineEnv -> Convert.Env
 convEnv RefineEnv{..} =
-    ConvEnv { conv_locals = Env.size rm_locals
-            }
+    Convert.Env { locals = Env.size rm_locals }
 
 -- | Pushes a fresh variable to the locals.
 fresh :: Ident -> D.Type -> RefineEnv -> RefineEnv
@@ -93,12 +97,12 @@ unboundVariable x = failure $ UnboundVariable x
 
 goalMismatch :: Connective -> D.Type -> RM a
 goalMismatch expected actual = do
-    qtp <- liftQuote $ quoteTp actual
+    qtp <- liftQuote $ Quote.quoteTp actual
     failure $ GoalMismatch expected qtp
 
 invalidLiteral :: Literal -> D.Type -> RM a
 invalidLiteral lit tp = do
-    qtp <- liftQuote $ quoteTp tp
+    qtp <- liftQuote $ Quote.quoteTp tp
     failure $ InvalidLiteral lit qtp
 
 hoistErr :: Either Error a -> RM a
@@ -107,22 +111,23 @@ hoistErr (Right a) = pure a
 
 --------------------------------------------------------------------------------
 -- Lifting
+-- [FIXME: Reed M, 07/11/2021] I should just expose some common primitives
 
 -- | Lift an 'EvM'
-liftEval :: EvM a -> RM a
+liftEval :: Eval a -> RM a
 liftEval m = do
     ev_env <- asks evalEnv
-    liftCmp $ runEval ev_env m
+    liftCompute $ Eval.runEval ev_env m
 
-liftQuote :: QuM a -> RM a
+liftQuote :: Quote a -> RM a
 liftQuote m = do
     qu_env <- asks quoteEnv
-    liftCmp $ runQuote qu_env m
+    liftCompute $ Quote.runQuote qu_env m
 
-liftConv :: ConvM a -> RM a
+liftConv :: Convert a -> RM a
 liftConv m = do
     conv_env <- asks convEnv
-    liftCmp $ runConv conv_env m
+    liftCompute $ Convert.runConv conv_env m
 
 --------------------------------------------------------------------------------
 -- Variables
@@ -152,6 +157,9 @@ resolve x = do
 
 getLocal :: Index -> RM (D.Value, D.Type)
 getLocal ix = asks (contents . Env.index ix . rm_locals)
+
+getContext :: RM (Env (Cell (D.Value, D.Type)))
+getContext = asks rm_locals
 
 getGlobal :: Level -> RM (D.Value, D.Type)
 getGlobal lvl = asks (contents . Env.level lvl . rm_globals)

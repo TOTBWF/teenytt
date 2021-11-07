@@ -30,8 +30,8 @@ import TeenyTT.Core.Env qualified as Env
 import TeenyTT.Core.Refiner.Monad
 import TeenyTT.Core.Pretty
 
-import TeenyTT.Core.Eval
-import TeenyTT.Core.Quote
+import TeenyTT.Core.Eval qualified as Eval
+import TeenyTT.Core.Quote qualified as Quote
 
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
@@ -73,8 +73,9 @@ hoistError (Left err) = liftIO $ fail $ show err
 hoistError (Right a) = pure a
 
 liftRM :: RM a -> Driver a
-liftRM m = hoistError $ runRM mempty m
-
+liftRM m = do
+    res <- liftIO $ runRM mempty m
+    hoistError res
 
 --------------------------------------------------------------------------------
 -- Printing
@@ -95,7 +96,7 @@ debugPrint a = liftIO $ do
 command :: CS.Command -> Driver ()
 command (CS.TypeAnn x e) = do
     tp <- liftRM $ T.runTp $ Elab.chkTp e
-    vtp <- liftRM $ liftEval $ evalTp tp
+    vtp <- liftRM $ liftEval $ Eval.evalTp tp
     -- divider
     -- debugPrint tp
     -- divider
