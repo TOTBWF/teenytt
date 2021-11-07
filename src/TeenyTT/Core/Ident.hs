@@ -28,6 +28,10 @@ instance (NFData a) => NFData (Cell a)
 instance IsString Ident where
     fromString = User . T.pack
 
+instance Pretty Ident where
+    pretty (User txt) = pretty txt
+    pretty Anon       = "_"
+
 instance Debug Ident where
     dump (User txt) = pretty txt
     dump Anon       = "_"

@@ -25,7 +25,7 @@ import Criterion.Measurement.Types qualified as Bench (nf, nfAppIO, Measured (..
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Env (Env)
 import TeenyTT.Core.Env qualified as Env
-import TeenyTT.Core.Refiner.Monad
+import TeenyTT.Core.Refiner.Monad qualified as RM
 import TeenyTT.Core.Pretty
 
 import TeenyTT.Core.Eval qualified as Eval
@@ -44,22 +44,37 @@ import TeenyTT.Frontend.Driver.Monad
 --------------------------------------------------------------------------------
 -- Commands
 
+elabChkTp :: CS.Expr -> Driver D.Type
+elabChkTp e = do
+    tp <- liftRM $ T.runTp $ Elab.chkTp e
+    liftRM $ RM.liftEval $ Eval.evalTp tp
+
 elabChkTm :: CS.Expr -> D.Type -> Driver (D.Value, D.Type)
 elabChkTm e tp = do
     tm <- liftRM $ T.runChk (Elab.chkTm e) tp
-    vtm <- liftRM $ liftEval $ Eval.eval tm
+    vtm <- liftRM $ RM.liftEval $ Eval.eval tm
     pure (vtm, tp)
 
 elabSynTm :: CS.Expr -> Driver (D.Value, D.Type)
 elabSynTm e = do
     (tm, tp) <- liftRM $ T.runSyn $ Elab.synTm e
-    vtm <- liftRM $ liftEval $ Eval.eval tm
+    vtm <- liftRM $ RM.liftEval $ Eval.eval tm
     pure (vtm, tp)
+
+printBinding :: Ident -> D.Value -> D.Type -> Driver ()
+printBinding x tm tp = do
+    qtp <- liftRM $ RM.liftQuote $ Quote.quoteTp tp
+    qtm <- liftRM $ RM.liftQuote $ Quote.quote tp tm
+    divider
+    message $ nest 2 $ vsep
+      [ "Printing" <+> pretty x
+      , pretty x <+> colon <+> dump qtp
+      , pretty x <+> equals <+> dump qtm
+      ]
 
 command :: CS.Command -> Driver ()
 command (CS.TypeAnn x e) = do
-    tp <- liftRM $ T.runTp $ Elab.chkTp e
-    vtp <- liftRM $ liftEval $ Eval.evalTp tp
+    vtp <- elabChkTp e
     annotateTp x vtp
 command (CS.Def x e) = do
     ann <- getAnnotation x
@@ -67,7 +82,14 @@ command (CS.Def x e) = do
       Just tp -> elabChkTm e tp
       Nothing -> elabSynTm e
     bindGlobal x tm tp
-command (CS.Directive dir _) = liftIO $ putStrLn $ "Unsupported Directive: " <> (T.unpack dir)
+command (CS.Directive "print" [CS.Var x]) = do
+    binding <- getGlobal x
+    case binding of
+      Just (tm, tp) -> printBinding x tm tp
+      Nothing -> failure ("No such variable" <+> squotes (pretty x))
+
+command (CS.Directive dir _) =
+    failure $ "Unsupported Directive:" <+> squotes (pretty dir)
 
 loadFile :: FilePath -> Driver ()
 loadFile path = do

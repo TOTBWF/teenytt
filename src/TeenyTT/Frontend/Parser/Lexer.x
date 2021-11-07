@@ -46,7 +46,7 @@ tokens :-
 <0> suc                           { token_ Suc }
 <0> @natural                      { literal NumLit }
 <0> @ident                        { token Identifier }
-<0> @directive                    { token Directive }
+<0> @directive                    { token (Directive . T.drop 1) }
 
 --------------------------------------------------------------------------------
 -- Layout

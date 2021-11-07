@@ -13,6 +13,9 @@ module TeenyTT.Frontend.Driver.Monad
   , getGlobal
   , bindGlobal
   -- * Output
+  , message
+  , warning
+  , failure
   , divider
   , debugPrint
   ) where
@@ -22,6 +25,9 @@ import Control.Monad.State.Strict
 import Data.Foldable
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+
+import Data.Text (Text)
+import Data.Text.IO qualified as TIO
 
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Pretty
@@ -33,6 +39,7 @@ import TeenyTT.Core.Refiner.Monad qualified as RM
 
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
+import qualified TeenyTT.Core.Pretty as TIO
 
 newtype Driver a = Driver { unDriver :: StateT DriverState IO a }
     deriving (Functor, Applicative, Monad, MonadState DriverState, MonadIO)
@@ -104,9 +111,19 @@ bindGlobal x val tp =
 
 --------------------------------------------------------------------------------
 -- Output
+-- [TODO: Reed M, 07/11/2021] Make messages/errors prettier
 
 divider :: Driver ()
 divider = liftIO $ putStrLn (replicate 80 '-')
+
+message :: Doc ann -> Driver ()
+message msg = putDocLn ("Info:" <+> msg)
+
+warning :: Text -> Driver ()
+warning msg = liftIO $ TIO.putStrLn ("Warning: " <> msg)
+
+failure :: Doc ann -> Driver ()
+failure err = putDocLn ("Error:" <+> err)
 
 debugPrint :: (Debug a) => a -> Driver ()
 debugPrint a = liftIO $ do
