@@ -20,11 +20,16 @@ module TeenyTT.Core.Env
   , unsafeLevel
   ) where
 
+import GHC.Generics
+import Control.DeepSeq
+
 import Prelude hiding (last, drop)
 
+import Data.Foldable
 import Data.Sequence (Seq(..))
 import Data.Sequence qualified as S
 
+import TeenyTT.Core.Pretty
 
 --------------------------------------------------------------------------------
 -- Environments
@@ -32,6 +37,7 @@ import Data.Sequence qualified as S
 -- [FIXME: Reed M, 03/11/2021] Is 'Seq' the right data structure?
 -- [FIXME: Reed M, 03/11/2021] Describe the invariants
 -- [FIXME: Reed M, 05/11/2021] Rename to 'Telescope'
+-- [FIXME: Reed M, 06/11/2021] Remove sanity checks
 
 -- | An Environment.
 -- Invariant: @length bindings == size@.
@@ -39,8 +45,9 @@ data Env a = Env
     { bindings :: Seq a
     , size :: Int
     }
-    deriving (Show, Functor)
+    deriving (Show, Functor, Generic)
 
+instance NFData a => NFData (Env a)
 
 instance Semigroup (Env a) where
     env0 <> env1 = Env { bindings = bindings env0 <> bindings env1, size = size env0 + size env1 }
@@ -72,11 +79,12 @@ drop (Env { bindings = Empty}) = error "Invariant Violated: tried to drop a bind
 
 -- | DeBruijin Indexes
 newtype Index = Index { unIndex :: Int }
-    deriving (Eq, Show)
+    deriving newtype (Eq, Show, NFData)
 
 -- | FIXME: This could be more efficient
 index :: Index -> Env a -> a
-index (Index ix) (Env {..}) = S.index bindings (size - 1 - ix)
+index (Index ix) (Env {..}) | size > 0 = S.index bindings (size - 1 - ix)
+                            | otherwise = error $ "Invalid Index: " <> show ix <> " into environment of size " <> show (length bindings)
 
 findIndex :: (a -> Bool) -> Env a -> Maybe Index
 findIndex p (Env {..}) = do
@@ -87,7 +95,8 @@ findIndex p (Env {..}) = do
 -- to some valid place inside of an environment. To use this safely, ensure that
 -- you don't mess up your index arithmetic.
 unsafeIndex :: Int -> Index
-unsafeIndex = Index
+unsafeIndex n | n >= 0 = Index n
+              | otherwise = error $ "Invariant Violated: unsafeIndex created an invalid index: " <> show n <> "."
 
 -- | Get the top variable off an environment.
 -- Invariant: The environment must be non-empty.
@@ -101,7 +110,7 @@ top _               = error "Invariant Violated: tried to take the top variable 
 
 -- | DeBruijin Levels
 newtype Level = Level { unLevel :: Int }
-    deriving (Eq, Show)
+    deriving newtype (Eq, Show, NFData)
 
 level :: Level -> Env a -> a
 level (Level lvl) (Env {..}) = S.index bindings lvl
@@ -111,10 +120,24 @@ findLevel p (Env {..}) = Level <$> S.findIndexR p bindings
 
 -- | Get the level of the last thing bound.
 last :: Env a -> Level
-last env = Level (size env - 1)
+last Env{..} | size > 0 = Level (size - 1)
+             | otherwise = error $ "Invariant Violated: last created an invalid level"
 
 -- | 'unsafeLevel' has the potential to break the invariant that each level points
 -- to some valid place inside of an environment. To use this safely, ensure that
 -- you don't mess up your level arithmetic.
 unsafeLevel :: Int -> Level
-unsafeLevel = Level
+unsafeLevel n | n >= 0 = Level n
+              | otherwise = error $ "Invariant Violated: unsafeLevel created an invalid level: " <> show n <> "."
+
+--------------------------------------------------------------------------------
+-- Pretty Printing
+
+instance (Debug a) => Debug (Env a) where
+    dump (Env {..}) = hsep $ punctuate ", " (toList $ fmap dump bindings)
+
+instance Debug Index where
+    dump (Index ix) = pretty ix
+
+instance Debug Level where
+    dump (Level l) = pretty l

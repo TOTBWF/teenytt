@@ -11,6 +11,8 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.String
 
+import TeenyTT.Core.Pretty
+
 data Ident
     = Anon
     | User Text
@@ -25,3 +27,7 @@ instance (NFData a) => NFData (Cell a)
 
 instance IsString Ident where
     fromString = User . T.pack
+
+instance Debug Ident where
+    dump (User txt) = pretty txt
+    dump Anon       = "_"

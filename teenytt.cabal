@@ -35,7 +35,9 @@ library
       TeenyTT.Core.Eval
       TeenyTT.Core.Ident
       TeenyTT.Core.Pretty
+      TeenyTT.Core.Pretty.Unicode
       TeenyTT.Core.Quote
+      TeenyTT.Core.Refiner.El
       TeenyTT.Core.Refiner.Monad
       TeenyTT.Core.Refiner.Nat
       TeenyTT.Core.Refiner.Pi

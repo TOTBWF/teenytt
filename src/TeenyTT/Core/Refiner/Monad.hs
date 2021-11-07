@@ -80,6 +80,8 @@ convEnv RefineEnv{..} =
 -- | Pushes a fresh variable to the locals.
 fresh :: Ident -> D.Type -> RefineEnv -> RefineEnv
 fresh x tp env =
+    -- This variable will refer to the /top/ of the environment,
+    -- which is what we would expect for closures.
     let mkCell lvl = Cell x (D.var lvl tp, tp)
     in env { rm_locals = Env.push (rm_locals env) mkCell }
 
