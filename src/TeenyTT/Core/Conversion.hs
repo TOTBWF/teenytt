@@ -77,7 +77,8 @@ equate (D.Small (D.Pi ident base fam) univ) (D.PiSmall sbase0 sfam0) (D.PiSmall 
       ap0 <- app sfam0 x
       ap1 <- app sfam1 x
       equate (D.Small fib univ) ap0 ap1
-equate _ tm0 tm1 = failure $ ExpectedEqual tm0 tm1
+equate _ tm0 tm1 =
+    failure $ ExpectedEqual tm0 tm1
 
 equateNeu :: D.Neutral -> D.Neutral -> ConvM ()
 equateNeu (D.Neutral hd0 sp0) (D.Neutral hd1 sp1) =
@@ -108,7 +109,8 @@ equateTp :: D.Type -> D.Type -> ConvM ()
 equateTp (D.Univ i) (D.Univ j) =
     when (i /= j) $
       failure $ ExpectedEqualTp (D.Univ i) (D.Univ j)
-equateTp D.Nat D.Nat = pure ()
+equateTp D.Nat D.Nat =
+    pure ()
 equateTp (D.Pi _ base0 fam0) (D.Pi _ base1 fam1) = do
     equateTp base0 base1
     bindVar base0 $ \x -> do
@@ -118,4 +120,11 @@ equateTp (D.Pi _ base0 fam0) (D.Pi _ base1 fam1) = do
 equateTp (D.El univ0 code0) (D.El univ1 code1) = do
     equateTp univ0 univ1
     equate univ0 code0 code1
-equateTp tp0 tp1 = failure $ ExpectedEqualTp tp0 tp1
+equateTp (D.ElCut tp0 neu0) (D.ElCut tp1 neu1) = do
+    equateTp tp0 tp1
+    equateNeu neu0 neu1
+equateTp (D.Small tp0 univ0) (D.Small tp1 univ1) = do
+    equateTp tp0 tp1
+    equateTp univ0 univ1
+equateTp tp0 tp1 =
+    failure $ ExpectedEqualTp tp0 tp1
