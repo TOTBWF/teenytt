@@ -16,10 +16,8 @@ data Error
     | UnboundVariable Ident
     | InvalidLiteral Literal S.Type
     | QuotationMismatch D.Type D.Value
-    | ExpectedEqual D.Value D.Value
-    | ExpectedEqualTp D.Type D.Type
-    | ExpectedEqualHead D.Head D.Head
-    | ExpectedSpineEqual [D.Frame] [D.Frame]
+    | ExpectedEqual S.Term S.Term
+    | ExpectedTpEqual S.Type S.Type
     deriving (Show)
 
 data Literal
