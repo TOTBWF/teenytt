@@ -57,22 +57,18 @@ newtype Parser a = Parser { unParser :: StateT ParserState (Except ParseError) a
     deriving newtype (Functor, Applicative, Monad, MonadState ParserState, MonadError ParseError)
 
 data ParserState =
-    ParserState { parseInput      :: AlexInput
-                , parseStartCodes :: (NonEmpty Int)
+    ParserState { parseInput      :: {-# UNPACK #-} AlexInput
+                , parseStartCodes :: {-# UNPACK #-} (NonEmpty Int)
                 , parseLayout     :: [Int]
                 , parseFile       :: FilePath
-                , parseLastLine   :: Int
-                , parseLastCol    :: Int
                 }
 
 initState :: FilePath -> [Int] -> ByteString -> ParserState
 initState path codes bs =
-    ParserState { parseInput      = Input 0 1 '\n' bs
+    ParserState { parseInput      = Input 0 1 0 1 '\n' bs
                 , parseStartCodes = NE.fromList (codes ++ [0])
                 , parseLayout     = []
                 , parseFile       = path
-                , parseLastLine   = 0
-                , parseLastCol    = 1
                 }
 
 runParser :: FilePath -> [Int] -> ByteString -> Parser a -> Either ParseError a
@@ -186,11 +182,11 @@ getParseLine = gets (lexLine . parseInput)
 
 {-# INLINE getParseLastColumn #-}
 getParseLastColumn :: Parser Int
-getParseLastColumn = gets parseLastCol
+getParseLastColumn = gets (lexPrevCol . parseInput)
 
 {-# INLINE getParseLastLine #-}
 getParseLastLine :: Parser Int
-getParseLastLine = gets parseLastLine
+getParseLastLine = gets (lexPrevLine . parseInput)
 
 getSpan :: Parser Span
 getSpan = do
@@ -206,10 +202,12 @@ getSpan = do
 -- See Section 5.2 of the Alex User Manual for some explanation of these.
 
 data AlexInput =
-    Input { lexLine  :: Int
-          , lexCol   :: Int
-          , lexPrev  :: Char
-          , lexBytes :: ByteString
+    Input { lexLine     :: Int
+          , lexCol      :: Int
+          , lexPrevLine :: Int
+          , lexPrevCol  :: Int
+          , lexPrevChar :: Char
+          , lexBytes    :: ByteString
           }
 
 {-# INLINE newline #-}
@@ -217,7 +215,9 @@ newline :: ByteString -> AlexInput -> AlexInput
 newline rest Input{..} =
     Input { lexLine = lexLine + 1
           , lexCol = 1
-          , lexPrev = '\n'
+          , lexPrevLine = lexPrevLine + 1
+          , lexPrevCol = lexCol
+          , lexPrevChar = '\n'
           , lexBytes = rest
           }
 
@@ -225,7 +225,8 @@ newline rest Input{..} =
 nextCol :: Char -> ByteString -> AlexInput -> AlexInput
 nextCol c rest Input{..} =
     Input { lexCol = lexCol + 1
-          , lexPrev = c
+          , lexPrevCol = lexCol
+          , lexPrevChar = c
           , lexBytes = rest
           , ..
           }
@@ -240,7 +241,7 @@ alexGetByte input@Input{..} = advance <$> BS.uncons lexBytes
             c    -> (byte, nextCol c rest input)
 
 alexPrevInputChar :: AlexInput -> Char
-alexPrevInputChar = lexPrev
+alexPrevInputChar = lexPrevChar
 
 {-# INLINE slice #-}
 slice :: Int -> AlexInput -> ByteString
