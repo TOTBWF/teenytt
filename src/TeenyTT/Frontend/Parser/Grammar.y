@@ -132,7 +132,7 @@ idents : idents_r { reverse $1 }
 
 idents_r :: { [Ident] }
 idents_r : ident { [$1] }
-         | idents ident { $2 : $1 }
+         | idents_r ident { $2 : $1 }
 
 ident :: { Ident }
 ident : name { User $1 }
