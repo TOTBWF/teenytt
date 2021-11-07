@@ -12,7 +12,6 @@ import Control.Monad.Reader
 
 import Data.Foldable
 
-import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.Int
 import Data.Text (Text)
@@ -21,11 +20,9 @@ import Data.Text qualified as T
 import System.IO.Silently
 
 import Criterion.Measurement qualified as Bench
-import Criterion.Measurement.Types qualified as Bench (nf, nfAppIO, Measured (..), fromInt)
+import Criterion.Measurement.Types qualified as Bench (nf, nfAppIO, Measured (..))
 
 import TeenyTT.Core.Ident
-import TeenyTT.Core.Env (Env)
-import TeenyTT.Core.Env qualified as Env
 import TeenyTT.Core.Refiner.Monad qualified as RM
 import TeenyTT.Core.Pretty
 
@@ -33,7 +30,6 @@ import TeenyTT.Core.Eval qualified as Eval
 import TeenyTT.Core.Quote qualified as Quote
 
 import TeenyTT.Core.Domain qualified as D
-import TeenyTT.Core.Syntax qualified as S
 import TeenyTT.Core.Tactic qualified as T
 
 import TeenyTT.Frontend.ConcreteSyntax qualified as CS

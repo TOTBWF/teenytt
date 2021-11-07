@@ -1,6 +1,7 @@
 module TeenyTT.Core.Pretty
   ( module Pp
   , Debug(..)
+  , Display(..)
   -- * IO
   , putDocLn
   ) where
@@ -21,6 +22,7 @@ instance (Debug a, Debug b) => Debug (a, b) where
 
 -- [FIXME: Reed M, 06/11/2021] Fill in this class
 class Display a where
+    display :: a -> Doc ann
 
 --------------------------------------------------------------------------------
 -- IO

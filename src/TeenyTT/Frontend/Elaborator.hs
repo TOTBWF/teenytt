@@ -4,17 +4,12 @@ module TeenyTT.Frontend.Elaborator
   , synTm
   ) where
 
-import Control.Monad.Except
-import Control.Monad.State.Strict
-
 import Data.List (foldl')
 
 import TeenyTT.Frontend.ConcreteSyntax qualified as CS
 
 import TeenyTT.Core.Ident
 
-import TeenyTT.Core.Domain qualified as D
-import TeenyTT.Core.Syntax qualified as S
 import TeenyTT.Core.Tactic as T
 
 import TeenyTT.Core.Refiner.El qualified as El

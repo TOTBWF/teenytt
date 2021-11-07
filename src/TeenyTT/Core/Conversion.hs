@@ -7,14 +7,10 @@ module TeenyTT.Core.Conversion
   ) where
 
 import Control.Monad.Reader
-import Control.Monad.Except
 
 import TeenyTT.Core.Quote (Quote)
 import TeenyTT.Core.Quote qualified as Q
 
-import TeenyTT.Core.Ident
-
-import TeenyTT.Core.Env qualified as Env
 import TeenyTT.Core.Error (Error(..))
 
 import TeenyTT.Core.Compute
@@ -22,10 +18,8 @@ import TeenyTT.Core.Compute
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
--- [FIXME: Reed M, 06/11/2021] I should reduce things to WHNF before performing conversion checking.
-
 newtype Convert a = Convert { unConvert :: ReaderT Env Compute a }
-    deriving (Functor, Applicative, Monad, MonadReader Env, MonadCompute)
+    deriving newtype (Functor, Applicative, Monad, MonadReader Env, MonadCompute)
 
 runConv :: Env -> Convert a -> Compute a
 runConv env m = runReaderT (unConvert m) env
@@ -45,9 +39,9 @@ data Env = Env { locals :: Int }
 
 equate :: D.Type -> D.Value -> D.Value -> Convert ()
 equate tp tm0 tm1 = do
-    tm0 <- liftQuote $ Q.quote tp tm0
-    tm1 <- liftQuote $ Q.quote tp tm1
-    tmEquals tm0 tm1
+    qtm0 <- liftQuote $ Q.quote tp tm0
+    qtm1 <- liftQuote $ Q.quote tp tm1
+    tmEquals qtm0 qtm1
 
 equateTp :: D.Type -> D.Type -> Convert ()
 equateTp tp0 tp1 = do

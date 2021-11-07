@@ -9,7 +9,10 @@ import Control.DeepSeq
 import Data.Text (Text)
 
 import TeenyTT.Core.Pretty
+import TeenyTT.Core.Position
 import TeenyTT.Core.Ident
+
+data Loc a = Loc Span a
 
 data Expr
     = Lam [Ident] Expr

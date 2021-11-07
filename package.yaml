@@ -36,6 +36,7 @@ dependencies:
 
 default-extensions:
   - BlockArguments
+  - DeriveAnyClass
   - DeriveFoldable
   - DeriveFunctor
   - DeriveTraversable
@@ -51,6 +52,15 @@ default-extensions:
   - RecordWildCards
   - StrictData
   - ViewPatterns
+
+ghc-options:
+- -Wall
+# These are just annoying.
+- -Wno-unused-top-binds
+- -Wno-unused-matches
+# We shadow a lot when we are splicing, so let's turn this off.
+- -Wno-name-shadowing
+- -Werror
 
 library:
   source-dirs: src

@@ -13,7 +13,6 @@ import TeenyTT.Frontend.Parser.Token (Token)
 
 import TeenyTT.Frontend.Parser.Grammar qualified as P
 import TeenyTT.Frontend.Parser.Lexer qualified as L
-import System.IO (FilePath)
 
 tokens :: FilePath -> ByteString -> Either ParseError [Token]
 tokens path bs = runParser path [L.layout] bs L.lexer

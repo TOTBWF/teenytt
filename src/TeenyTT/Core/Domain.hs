@@ -23,7 +23,7 @@ import TeenyTT.Core.Ident
 import TeenyTT.Core.Pretty
 import TeenyTT.Core.Pretty.Unicode qualified as Pp
 
-import TeenyTT.Core.Env (Level, Index)
+import TeenyTT.Core.Env (Level)
 import TeenyTT.Core.Env qualified as Env
 
 import TeenyTT.Core.Syntax qualified as S

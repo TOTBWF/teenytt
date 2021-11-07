@@ -7,7 +7,6 @@ import TeenyTT.Core.Refiner.Monad
 
 import TeenyTT.Core.Quote qualified as Quote
 
-import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
 import TeenyTT.Core.Tactic qualified as T
