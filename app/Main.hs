@@ -29,5 +29,5 @@ main :: IO ()
 main = do
     cmd <- execParser cmds
     case cmd of
-      LoadFile path -> TeenyTT.loadFile path
-      BenchFile path iters -> TeenyTT.benchFile path iters
+      LoadFile path -> TeenyTT.runDriver $ TeenyTT.loadFile path
+      BenchFile path iters -> TeenyTT.runDriver $ TeenyTT.benchFile path iters
