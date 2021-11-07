@@ -48,5 +48,4 @@ getGlobal lvl = liftCompute $ Compute $ asks (Env.level lvl)
 
 emit :: (MonadCompute m) => Doc ann -> m ()
 emit doc = liftCompute $ Compute $ liftIO $ do
-    putDoc doc
-    putStrLn ""
+    putDocLn doc

@@ -52,6 +52,8 @@ library
       TeenyTT.Core.TermBuilder
       TeenyTT.Frontend.ConcreteSyntax
       TeenyTT.Frontend.Driver
+      TeenyTT.Frontend.Driver.Debug
+      TeenyTT.Frontend.Driver.Monad
       TeenyTT.Frontend.Elaborator
       TeenyTT.Frontend.Parser
       TeenyTT.Frontend.Parser.Grammar
@@ -76,6 +78,7 @@ library
     , deepseq
     , mtl
     , prettyprinter
+    , silently
     , text
     , transformers
   default-language: Haskell2010
@@ -98,6 +101,7 @@ executable teenytt-exe
     , mtl
     , optparse-applicative
     , prettyprinter
+    , silently
     , teenytt
     , text
     , transformers
@@ -121,6 +125,7 @@ test-suite teenytt-test
     , deepseq
     , mtl
     , prettyprinter
+    , silently
     , teenytt
     , text
     , transformers
