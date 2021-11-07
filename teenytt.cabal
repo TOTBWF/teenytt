@@ -34,6 +34,7 @@ library
       TeenyTT.Core.Error
       TeenyTT.Core.Eval
       TeenyTT.Core.Ident
+      TeenyTT.Core.Pretty
       TeenyTT.Core.Quote
       TeenyTT.Core.Refiner.Monad
       TeenyTT.Core.Refiner.Nat
@@ -58,7 +59,7 @@ library
       Paths_teenytt
   hs-source-dirs:
       src
-  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
+  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
   build-tools:
       alex
     , happy
@@ -67,7 +68,10 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , criterion-measurement
+    , deepseq
     , mtl
+    , prettyprinter
     , text
     , transformers
   default-language: Haskell2010
@@ -78,15 +82,18 @@ executable teenytt-exe
       Paths_teenytt
   hs-source-dirs:
       app
-  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
+  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
     , bytestring
     , containers
+    , criterion-measurement
+    , deepseq
     , mtl
     , optparse-applicative
+    , prettyprinter
     , teenytt
     , text
     , transformers
@@ -99,14 +106,17 @@ test-suite teenytt-test
       Paths_teenytt
   hs-source-dirs:
       test
-  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData
+  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
     , bytestring
     , containers
+    , criterion-measurement
+    , deepseq
     , mtl
+    , prettyprinter
     , teenytt
     , text
     , transformers

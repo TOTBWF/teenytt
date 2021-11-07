@@ -3,6 +3,9 @@ module TeenyTT.Frontend.ConcreteSyntax
   , Command(..)
   ) where
 
+import GHC.Generics
+
+import Control.DeepSeq
 import Data.Text (Text)
 
 import TeenyTT.Core.Ident
@@ -19,10 +22,14 @@ data Expr
     | Pi [Cell Expr] Expr
     | Hole
     | Incomplete Expr
-    deriving (Show)
+    deriving (Show, Generic)
+
+instance NFData Expr
 
 data Command
     = TypeAnn Ident Expr
     | Def Ident Expr
     | Directive Text [Expr]
-    deriving (Show)
+    deriving (Show, Generic)
+
+instance NFData Command

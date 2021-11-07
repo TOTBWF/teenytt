@@ -25,8 +25,11 @@ dependencies:
 - base >= 4.7 && < 5
 - array
 - bytestring
+- deepseq
 - containers
+- criterion-measurement
 - mtl
+- prettyprinter
 - text
 - transformers
 
@@ -35,6 +38,7 @@ default-extensions:
   - DeriveFoldable
   - DeriveFunctor
   - DeriveTraversable
+  - DeriveGeneric
   - DerivingStrategies
   - FlexibleContexts
   - FlexibleInstances
@@ -45,6 +49,7 @@ default-extensions:
   - OverloadedStrings
   - RecordWildCards
   - StrictData
+  - ViewPatterns
 
 library:
   source-dirs: src

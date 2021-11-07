@@ -4,6 +4,9 @@ module TeenyTT.Core.Ident
   , Cell(..)
   ) where
 
+import GHC.Generics
+
+import Control.DeepSeq
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.String
@@ -11,10 +14,14 @@ import Data.String
 data Ident
     = Anon
     | User Text
-    deriving (Eq, Show)
+    deriving (Show, Eq, Ord, Generic)
+
+instance NFData Ident
 
 data Cell a = Cell { ident :: Ident, contents :: a }
-    deriving Show
+    deriving (Show, Generic)
+
+instance (NFData a) => NFData (Cell a)
 
 instance IsString Ident where
     fromString = User . T.pack

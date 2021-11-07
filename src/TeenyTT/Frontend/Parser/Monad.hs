@@ -27,9 +27,13 @@ module TeenyTT.Frontend.Parser.Monad
   , slice
   ) where
 
+import Control.DeepSeq
+
 import Data.Maybe (listToMaybe)
 import Data.List.NonEmpty (NonEmpty(..), (<|))
 import Data.List.NonEmpty qualified as NE
+
+import GHC.Generics
 
 import Control.Monad.State.Strict
 import Control.Monad.Except
@@ -105,7 +109,9 @@ data ParseError = ParseError
     { errPos      :: Position
     , errPrevByte :: ByteString
     , errMsg      :: Text
-    } deriving Show
+    } deriving (Show, Generic)
+
+instance NFData ParseError
 
 parseError :: Text -> Parser a
 parseError msg = do

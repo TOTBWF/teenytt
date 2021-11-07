@@ -2,6 +2,10 @@ module TeenyTT.Frontend.Parser.Token
   ( Token(..)
   ) where
 
+import GHC.Generics
+
+import Control.DeepSeq
+
 import Data.Text (Text)
 
 data Token
@@ -30,4 +34,6 @@ data Token
     | BlockBreak
     | BlockClose
     | EOF
-    deriving (Show)
+    deriving (Show, Generic)
+
+instance NFData Token
