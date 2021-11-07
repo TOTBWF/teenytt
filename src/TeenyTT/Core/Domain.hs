@@ -27,7 +27,6 @@ import TeenyTT.Core.Env qualified as Env
 
 import TeenyTT.Core.Syntax qualified as S
 
--- [FIXME: Reed M, 05/11/2021] I should add a monoid instance here
 data Env = Env { tps :: Env.Env Type, vals :: Env.Env Value }
     deriving (Show, Generic)
 
