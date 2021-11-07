@@ -34,6 +34,7 @@ library
       TeenyTT.Core.Error
       TeenyTT.Core.Eval
       TeenyTT.Core.Ident
+      TeenyTT.Core.Position
       TeenyTT.Core.Pretty
       TeenyTT.Core.Pretty.Unicode
       TeenyTT.Core.Quote
