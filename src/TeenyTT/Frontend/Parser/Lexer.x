@@ -3,6 +3,7 @@ module TeenyTT.Frontend.Parser.Lexer where
 
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
+import Data.Text qualified as T
 
 import TeenyTT.Frontend.Parser.Monad
 import TeenyTT.Frontend.Parser.Token
@@ -14,22 +15,38 @@ $digit = 0-9
 $alpha = [a-zA-Z]
 $alphanum = [a-zA-Z09]
 
+--------------------------------------------------------------------------------
+-- Macros
+@natural   = $digit+
+@ident     = $alpha [$alpha $digit \_ \-]*
+@directive = \# @ident
+
 tokens :-
 
 -- We don't want to include newlines as part of our whitespace.
 [\ \t]+ ;
 
+-- [FIXME: Reed M, 06/11/2021] Figure out a better way of doing keywords
 <0> "--" .* \n { \_ -> pushStartCode newline *> scan }
 <0> \n         { \_ -> pushStartCode newline *> scan }
 
 <0> (λ|\\)                        { token_ Lambda }
 <0> :                             { token_ Colon }
 <0> =                             { token_ Equal }
+<0> _                             { token_ Underscore }
 <0> (→|\->)                       { token_ Arrow }
 <0> (∀|\forall)                   { token_ ForAll }
 <0> \(                            { token_ LParen }
 <0> \)                            { token_ RParen }
-<0> $alpha [$alpha $digit \_ \-]* { token Identifier }
+<0> \{\!                          { token_ LBang }
+<0> \!\}                          { token_ RBang }
+<0> \?                            { token_ Question }
+<0> Type                          { token_ Type }
+<0> ℕ                             { token_ Nat }
+<0> suc                           { token_ Suc }
+<0> @natural                      { literal NumLit }
+<0> @ident                        { token Identifier }
+<0> @directive                    { token Directive }
 
 --------------------------------------------------------------------------------
 -- Layout

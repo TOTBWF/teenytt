@@ -11,6 +11,7 @@ module TeenyTT.Frontend.Parser.Monad
   -- * Tokens
   , token
   , token_
+  , literal
   -- * Layout
   , openBlock
   , closeBlock
@@ -35,6 +36,7 @@ import Control.Monad.Except
 
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
+import Data.ByteString.Char8 qualified as BSChar
 import Data.ByteString.Internal qualified as BS
 import Data.Text (Text)
 import Data.Text.Encoding qualified as TE
@@ -125,6 +127,12 @@ token k bs = pure (k $ TE.decodeUtf8 bs)
 {-# INLINE token_ #-}
 token_ :: Token -> ByteString -> Parser Token
 token_ tok _ = pure tok
+
+literal :: (Int -> Token) -> ByteString -> Parser Token
+literal k bs =
+    case BSChar.readInt bs of
+      Just (n, _) -> pure $ k n
+      Nothing     -> parseError "Invariant Violated: Could not read literal."
 
 --------------------------------------------------------------------------------
 -- Layout

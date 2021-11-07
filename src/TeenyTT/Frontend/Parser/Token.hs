@@ -12,9 +12,22 @@ data Token
     | ForAll
     | LParen
     | RParen
+    | LBang
+    | RBang
+    | Question
+    -- Keywords
+    | Type
+    | Nat
+    | Suc
+    -- Literals
+    | NumLit Int
+    -- Identifiers
     | Identifier Text
-    | EOF
+    | Directive Text
+    | Underscore
+    -- Layout
     | BlockOpen
     | BlockBreak
     | BlockClose
+    | EOF
     deriving (Show)

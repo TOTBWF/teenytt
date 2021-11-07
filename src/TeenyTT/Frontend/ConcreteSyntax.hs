@@ -3,6 +3,8 @@ module TeenyTT.Frontend.ConcreteSyntax
   , Command(..)
   ) where
 
+import Data.Text (Text)
+
 import TeenyTT.Core.Ident
 
 data Expr
@@ -10,13 +12,17 @@ data Expr
     | App Expr [Expr]
     | Zero
     | Suc Expr
+    | NatLit Int
     | Var Ident
-    | Univ
+    | Univ Int
     | Nat
     | Pi [Cell Expr] Expr
+    | Hole
+    | Incomplete Expr
     deriving (Show)
 
 data Command
     = TypeAnn Ident Expr
     | Def Ident Expr
+    | Directive Text [Expr]
     deriving (Show)
