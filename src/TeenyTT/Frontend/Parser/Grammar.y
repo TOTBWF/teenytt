@@ -34,27 +34,27 @@ import TeenyTT.Core.Ident
 %error { failure }
 
 %token
-  name      { T.Identifier $$ }
-  directive { T.Directive $$ }
-  numlit    { T.NumLit $$ }
-  type      { T.Type }
-  nat       { T.Nat }
-  suc       { T.Suc }
-  '->'      { T.Arrow }
-  forall    { T.ForAll }
-  lambda    { T.Lambda }
-  '('       { T.LParen }
-  ')'       { T.RParen }
-  '{!'      { T.LBang }
-  '!}'      { T.RBang }
-  '?'       { T.Question }
-  ':'       { T.Colon }
-  '='       { T.Equal }
-  '_'       { T.Underscore }
+  name      { T.TokIdent $$ }
+  directive { T.TokDirective $$ }
+  literal   { T.TokLiteral $$ }
+  type      { T.TokKeyword T.Type $$ }
+  nat       { T.TokKeyword T.Nat $$ }
+  suc       { T.TokKeyword T.Suc $$ }
+  '->'      { T.TokSymbol T.Arrow $$ }
+  forall    { T.TokSymbol T.ForAll $$ }
+  lambda    { T.TokSymbol T.Lambda $$ }
+  '('       { T.TokSymbol T.LParen $$ }
+  ')'       { T.TokSymbol T.RParen $$ }
+  '{!'      { T.TokSymbol T.LBang $$ }
+  '!}'      { T.TokSymbol T.RBang $$ }
+  '?'       { T.TokSymbol T.Question $$ }
+  ':'       { T.TokSymbol T.Colon $$ }
+  '='       { T.TokSymbol T.Equal $$ }
+  '_'       { T.TokSymbol T.Underscore $$ }
   -- Layout Tokens
-  block_open   { T.BlockOpen }
-  block_break  { T.BlockBreak }
-  block_close  { T.BlockClose }
+  block_open   { T.TokSymbol T.BlockOpen $$ }
+  block_break  { T.TokSymbol T.BlockBreak $$ }
+  block_close  { T.TokSymbol T.BlockClose $$ }
 
 %right '->'
 
@@ -78,7 +78,7 @@ cmds : cmd block_break       { [$1] }
 cmd :: { Command }
 cmd : ident ':' expr  { TypeAnn $1 $3 }
     | ident '=' expr  { Def $1 $3 }
-    | directive exprs { Directive $1 $2 }
+    | directive exprs { Directive (fst $1) $2 }
 
 --------------------------------------------------------------------------------
 -- Expressions
@@ -108,10 +108,10 @@ atom : '(' expr ')'                { $2 }
      | '?'                         { Hole }
      | '{!' expr '!}'              { Incomplete $2 }
      | ident                       { Var $1 }
-     | numlit                      { NatLit $1 }
+     | literal                     { NatLit (natlit $1) }
      | nat                         { Nat }
      | suc atom                    { Suc $2 }
-     | type numlit                 { Univ $2 }
+     | type literal                { Univ (natlit $2) }
 
 --------------------------------------------------------------------------------
 -- Identifiers + Cells
@@ -135,14 +135,18 @@ idents_r : ident { [$1] }
          | idents_r ident { $2 : $1 }
 
 ident :: { Ident }
-ident : name { User $1 }
+ident : name { User (fst $1) }
       | '_'  { Anon }
 
 {
-atoms ::  NonEmpty Expr -> Expr
+atoms :: NonEmpty Expr -> Expr
 atoms xs = case NE.reverse xs of
   (x :| []) -> x
   (x :| xs) -> App x xs
+
+-- [FIXME: Reed M, 07/11/2021] Handle literals better!
+natlit :: T.Literal -> Int
+natlit (T.NumLit n) = n
 
 
 --------------------------------------------------------------------------------

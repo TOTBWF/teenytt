@@ -11,6 +11,8 @@ module TeenyTT.Frontend.Parser.Monad
   -- * Tokens
   , token
   , token_
+  , symbol
+  , keyword
   , literal
   -- * Layout
   , openBlock
@@ -19,7 +21,9 @@ module TeenyTT.Frontend.Parser.Monad
   -- * State Management
   , setInput
   , getInput
-  , getColumn
+  , getParseLine
+  , getParseColumn
+  , getSpan
   -- * Alex Primitives
   , AlexInput
   , alexGetByte
@@ -46,17 +50,19 @@ import Data.Text (Text)
 import Data.Text.Encoding qualified as TE
 import Data.Word (Word8)
 
-import TeenyTT.Frontend.Position
+import TeenyTT.Core.Position
 import TeenyTT.Frontend.Parser.Token
 
 newtype Parser a = Parser { unParser :: StateT ParserState (Except ParseError) a }
-    deriving (Functor, Applicative, Monad, MonadState ParserState, MonadError ParseError)
+    deriving newtype (Functor, Applicative, Monad, MonadState ParserState, MonadError ParseError)
 
 data ParserState =
     ParserState { parseInput      :: AlexInput
                 , parseStartCodes :: (NonEmpty Int)
                 , parseLayout     :: [Int]
                 , parseFile       :: FilePath
+                , parseLastLine   :: Int
+                , parseLastCol    :: Int
                 }
 
 initState :: FilePath -> [Int] -> ByteString -> ParserState
@@ -65,6 +71,8 @@ initState path codes bs =
                 , parseStartCodes = NE.fromList (codes ++ [0])
                 , parseLayout     = []
                 , parseFile       = path
+                , parseLastLine   = 0
+                , parseLastCol    = 1
                 }
 
 runParser :: FilePath -> [Int] -> ByteString -> Parser a -> Either ParseError a
@@ -106,38 +114,39 @@ popStartCode = modify' $ \st ->
 -- Errors
 
 data ParseError = ParseError
-    { errPos      :: Position
-    , errPrevByte :: ByteString
-    , errMsg      :: Text
+    { errMsg      :: Text
     } deriving (Show, Generic)
 
 instance NFData ParseError
 
 parseError :: Text -> Parser a
 parseError msg = do
-    pos <- getPosition
-    prevByte <- gets (BS.take 1 . lexBytes . parseInput)
-    throwError $ ParseError
-        { errPos = pos
-        , errPrevByte = prevByte
-        , errMsg = msg
-        }
+    throwError $ ParseError { errMsg = msg }
 
 --------------------------------------------------------------------------------
 -- Tokens
 
 {-# INLINE token #-}
-token :: (Text -> Token) -> ByteString -> Parser Token
-token k bs = pure (k $ TE.decodeUtf8 bs)
+token :: ((Text, Span) -> Token) -> ByteString -> Parser Token
+token k bs = do
+    sp <- getSpan
+    pure $ k (TE.decodeUtf8 bs, sp)
 
 {-# INLINE token_ #-}
 token_ :: Token -> ByteString -> Parser Token
 token_ tok _ = pure tok
 
-literal :: (Int -> Token) -> ByteString -> Parser Token
-literal k bs =
+{-# INLINE symbol #-}
+symbol :: Symbol -> ByteString -> Parser Token
+symbol sym _ = TokSymbol sym <$> getSpan
+
+keyword :: Keyword -> ByteString -> Parser Token
+keyword key _ = TokKeyword key <$> getSpan
+
+literal :: (Int -> Literal) -> ByteString -> Parser Token
+literal k bs = do
     case BSChar.readInt bs of
-      Just (n, _) -> pure $ k n
+      Just (n, _) -> pure $ TokLiteral (k n)
       Nothing     -> parseError "Invariant Violated: Could not read literal."
 
 --------------------------------------------------------------------------------
@@ -167,23 +176,29 @@ setInput input = modify $ \s -> s { parseInput = input }
 getInput :: Parser AlexInput
 getInput = gets parseInput
 
-{-# INLINE getColumn #-}
-getColumn :: Parser Int
-getColumn = gets (lexCol . parseInput)
+{-# INLINE getParseColumn #-}
+getParseColumn :: Parser Int
+getParseColumn = gets (lexCol . parseInput)
 
-{-# INLINE getLine #-}
-getLine :: Parser Int
-getLine = gets (lexLine . parseInput)
+{-# INLINE getParseLine #-}
+getParseLine :: Parser Int
+getParseLine = gets (lexLine . parseInput)
 
-getPosition :: Parser Position
-getPosition = do
-    state <- get
-    let input = parseInput state
-    pure $ Position
-        { posLine = lexLine input
-        , posCol  = lexCol input
-        , posFile = parseFile state
-        }
+{-# INLINE getParseLastColumn #-}
+getParseLastColumn :: Parser Int
+getParseLastColumn = gets parseLastCol
+
+{-# INLINE getParseLastLine #-}
+getParseLastLine :: Parser Int
+getParseLastLine = gets parseLastLine
+
+getSpan :: Parser Span
+getSpan = do
+    startLine <- getParseLastLine
+    startCol  <- getParseLastColumn
+    endLine   <- getParseLine
+    endCol    <- getParseColumn
+    pure $ Span {..} 
 
 
 --------------------------------------------------------------------------------

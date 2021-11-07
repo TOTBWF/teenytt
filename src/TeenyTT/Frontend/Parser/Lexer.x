@@ -2,8 +2,6 @@
 module TeenyTT.Frontend.Parser.Lexer where
 
 import Data.ByteString (ByteString)
-import Data.ByteString qualified as BS
-import Data.Text qualified as T
 
 import TeenyTT.Frontend.Parser.Monad
 import TeenyTT.Frontend.Parser.Token
@@ -30,23 +28,23 @@ tokens :-
 <0> "--" .* \n { \_ -> pushStartCode newline *> scan }
 <0> \n         { \_ -> pushStartCode newline *> scan }
 
-<0> (λ|\\)                        { token_ Lambda }
-<0> :                             { token_ Colon }
-<0> =                             { token_ Equal }
-<0> _                             { token_ Underscore }
-<0> (→|\->)                       { token_ Arrow }
-<0> (∀|\forall)                   { token_ ForAll }
-<0> \(                            { token_ LParen }
-<0> \)                            { token_ RParen }
-<0> \{\!                          { token_ LBang }
-<0> \!\}                          { token_ RBang }
-<0> \?                            { token_ Question }
-<0> Type                          { token_ Type }
-<0> ℕ                             { token_ Nat }
-<0> suc                           { token_ Suc }
+<0> (λ|\\)                        { symbol Lambda }
+<0> :                             { symbol Colon }
+<0> =                             { symbol Equal }
+<0> _                             { symbol Underscore }
+<0> (→|\->)                       { symbol Arrow }
+<0> (∀|\forall)                   { symbol ForAll }
+<0> \(                            { symbol LParen }
+<0> \)                            { symbol RParen }
+<0> \{\!                          { symbol LBang }
+<0> \!\}                          { symbol RBang }
+<0> \?                            { symbol Question }
+<0> Type                          { keyword Type }
+<0> ℕ                             { keyword Nat }
+<0> suc                           { keyword Suc }
 <0> @natural                      { literal NumLit }
-<0> @ident                        { token Identifier }
-<0> @directive                    { token (Directive . T.drop 1) }
+<0> @ident                        { token TokIdent }
+<0> @directive                    { token TokDirective }
 
 --------------------------------------------------------------------------------
 -- Layout
@@ -83,7 +81,7 @@ emitEOF _ = do
   case block of
     Just _ -> do
       closeBlock
-      pure BlockClose
+      TokSymbol BlockClose <$> getSpan
     Nothing -> do
       popStartCode
       pure EOF
@@ -92,7 +90,7 @@ startLayout :: ByteString -> Parser Token
 startLayout _ = do
   popStartCode
   block <- currentBlock
-  col <- getColumn
+  col <- getParseColumn
   -- If are inside of some layout block, /and/
   -- the column of the next token is to the left (or equal to)
   -- the indentation of that block, we enter the 'empty_layout' state
@@ -102,13 +100,13 @@ startLayout _ = do
     then pushStartCode empty_layout
     else openBlock col
 
-  pure BlockOpen
+  TokSymbol BlockOpen <$> getSpan
 
 emptyLayout :: ByteString -> Parser Token
 emptyLayout _ = do
   popStartCode
   pushStartCode newline
-  pure BlockClose
+  TokSymbol BlockClose <$> getSpan
 
 -- | The offsides rule gets invoked every time we encounter
 --   a newline, and determines if we ought to continue with
@@ -117,7 +115,7 @@ emptyLayout _ = do
 offsides :: ByteString -> Parser Token
 offsides _ = do
   block <- currentBlock
-  col <- getColumn
+  col <- getParseColumn
   case block of
     Just layoutCol ->
       case col `compare` layoutCol of
@@ -127,7 +125,7 @@ offsides _ = do
           -- state and then also emit a token denoting
           -- that there was a linebreak within the block.
           popStartCode
-          pure BlockBreak
+          TokSymbol BlockBreak <$> getSpan
         GT -> do
           -- If the current column is greater than
           -- the layout column, we exit out of the 'newline'
@@ -139,7 +137,7 @@ offsides _ = do
           -- If the current cloumn is less than
           -- the layout column, we need to close out the block!
           closeBlock
-          pure BlockClose
+          TokSymbol BlockClose <$> getSpan
     Nothing -> do
       -- If we aren't currently in a layout context,
       -- exit out of the 'newline' state and keep scanning.
