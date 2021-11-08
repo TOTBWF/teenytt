@@ -1,0 +1,126 @@
+Lexer:
+    Mean Time: 353.5 μs
+    Iterations: 10000
+Parser:
+    Mean Time: 513.7 μs
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 755.2 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 985.0 ns
+    Iterations: 10000
+Annotate User "const":
+    Mean Time: 1.388 μs
+    Iterations: 10000
+Define User "const":
+    Mean Time: 1.594 μs
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 756.9 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 924.8 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 757.3 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 953.6 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 760.1 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 928.3 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 789.5 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 955.1 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 783.4 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 979.0 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 762.4 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 945.0 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 765.3 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 928.4 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 774.5 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 935.6 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 799.3 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 902.6 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 797.5 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 917.5 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 806.4 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 913.6 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 787.9 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 909.6 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 785.5 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 922.6 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 785.2 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 918.2 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 777.2 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 914.1 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 802.9 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 956.4 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 764.4 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 916.7 ns
+    Iterations: 10000
+Annotate User "id":
+    Mean Time: 764.2 ns
+    Iterations: 10000
+Define User "id":
+    Mean Time: 942.6 ns
+    Iterations: 10000
