@@ -21,7 +21,6 @@ module TeenyTT.Frontend.Parser.Monad
   -- * State Management
   , setInput
   , getInput
-  , getParseLine
   , getParseColumn
   , getSpan
   -- * Alex Primitives
@@ -67,7 +66,7 @@ data ParserState =
 
 initState :: FilePath -> [Int] -> ByteString -> ParserState
 initState path codes bs =
-    ParserState { parseInput      = Input 0 1 0 1 '\n' bs []
+    ParserState { parseInput      = Input (Span 0 1 0 1) '\n' bs []
                 , parseStartCodes = NE.fromList (codes ++ [0])
                 , parseLayout     = []
                 , parseFile       = path
@@ -178,27 +177,11 @@ getInput = gets parseInput
 
 {-# INLINE getParseColumn #-}
 getParseColumn :: Parser Int
-getParseColumn = gets (lexCol . parseInput)
+getParseColumn = gets (endCol . lexSpan . parseInput)
 
-{-# INLINE getParseLine #-}
-getParseLine :: Parser Int
-getParseLine = gets (lexLine . parseInput)
-
-{-# INLINE getParseLastColumn #-}
-getParseLastColumn :: Parser Int
-getParseLastColumn = gets (lexPrevCol . parseInput)
-
-{-# INLINE getParseLastLine #-}
-getParseLastLine :: Parser Int
-getParseLastLine = gets (lexPrevLine . parseInput)
-
+{-# INLINE getSpan #-}
 getSpan :: Parser Span
-getSpan = do
-    startLine <- getParseLastLine
-    startCol  <- getParseLastColumn
-    endLine   <- getParseLine
-    endCol    <- getParseColumn
-    pure $ Span {..} 
+getSpan = gets (lexSpan . parseInput)
 
 
 --------------------------------------------------------------------------------
@@ -223,10 +206,7 @@ getSpan = do
 -- 'lexBytes', and the process repeats.
 
 data AlexInput =
-    Input { lexLine      :: Int
-          , lexCol       :: Int
-          , lexPrevLine  :: Int
-          , lexPrevCol   :: Int
+    Input { lexSpan      :: Span
           , lexPrevChar  :: Char
           , lexBytes     :: ByteString
           , lexCharBytes :: [Word8]
@@ -236,10 +216,8 @@ data AlexInput =
 {-# INLINE newline #-}
 newline :: ByteString -> AlexInput -> AlexInput
 newline rest Input{..} =
-    Input { lexLine = lexLine + 1
-          , lexCol = 1
-          , lexPrevLine = lexPrevLine + 1
-          , lexPrevCol = lexCol
+    Input { lexSpan = lexSpan { startLine = startLine lexSpan + 1, startCol = endCol lexSpan, endLine = endLine lexSpan + 1, endCol = 1 }
+    -- lexLine = lexLine + 1
           , lexPrevChar = '\n'
           , lexBytes = rest
           , lexCharBytes = []
@@ -248,8 +226,7 @@ newline rest Input{..} =
 {-# INLINE nextCol #-}
 nextCol :: Char -> ByteString -> AlexInput -> AlexInput
 nextCol c rest Input{..} =
-    Input { lexCol = lexCol + 1
-          , lexPrevCol = lexCol
+    Input { lexSpan = lexSpan { startCol = endCol lexSpan, endCol = endCol lexSpan + 1 }
           , lexPrevChar = c
           , lexBytes = rest
           , ..
