@@ -44,14 +44,20 @@ data Literal
     deriving stock (Show, Generic)
     deriving anyclass NFData
 
--- NOTE: We need to use tuples here so that this
--- plays nicely with the '%token' directive.
 data Token
     = TokSymbol Symbol Span
     | TokKeyword Keyword Span
-    | TokLiteral Literal
-    | TokIdent (Text, Span)
-    | TokDirective (Text, Span)
-    | EOF
+    | TokLiteral {-# UNPACK #-} (Loc Literal)
+    | TokIdent {-# UNPACK #-} (Loc Text)
+    | TokDirective {-# UNPACk #-} (Loc Text)
+    | EOF Span
     deriving (Show, Generic)
     deriving anyclass NFData
+
+instance Located Token where
+    locate (TokSymbol _ sp)   = sp
+    locate (TokKeyword _ sp)  = sp
+    locate (TokLiteral loc)   = locate loc
+    locate (TokIdent loc)     = locate loc
+    locate (TokDirective loc) = locate loc
+    locate (EOF sp)           = sp

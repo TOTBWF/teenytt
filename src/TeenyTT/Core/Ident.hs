@@ -12,6 +12,7 @@ import Data.Text qualified as T
 import Data.String
 
 import TeenyTT.Core.Pretty
+import TeenyTT.Core.Position
 
 data Ident
     = Anon
@@ -38,3 +39,6 @@ instance Debug Ident where
 
 instance Debug a => Debug (Cell a) where
     dump Cell{..} = dump ident <+> ":" <+> dump contents
+
+instance (Located a) => Located (Cell a) where
+    locate (Cell _ a) = locate a

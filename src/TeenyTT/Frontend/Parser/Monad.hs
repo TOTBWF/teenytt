@@ -123,10 +123,10 @@ parseError msg = do
 -- Tokens
 
 {-# INLINE token #-}
-token :: ((Text, Span) -> Token) -> ByteString -> Parser Token
+token :: (Loc Text -> Token) -> ByteString -> Parser Token
 token k bs = do
     sp <- getSpan
-    pure $ k (TE.decodeUtf8 bs, sp)
+    pure $ k $ Loc sp (TE.decodeUtf8 bs)
 
 {-# INLINE token_ #-}
 token_ :: Token -> ByteString -> Parser Token
@@ -137,12 +137,14 @@ symbol :: Symbol -> ByteString -> Parser Token
 symbol sym _ = TokSymbol sym <$> getSpan
 
 keyword :: Keyword -> ByteString -> Parser Token
-keyword key _ = TokKeyword key <$> getSpan
+keyword key _ =
+    TokKeyword key <$> getSpan
 
 literal :: (Int -> Literal) -> ByteString -> Parser Token
 literal k bs = do
+    sp <- getSpan
     case BSChar.readInt bs of
-      Just (n, _) -> pure $ TokLiteral (k n)
+      Just (n, _) -> pure $ TokLiteral $ Loc sp (k n)
       Nothing     -> parseError "Invariant Violated: Could not read literal."
 
 --------------------------------------------------------------------------------

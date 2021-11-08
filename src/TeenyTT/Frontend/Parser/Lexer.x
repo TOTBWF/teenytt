@@ -84,7 +84,7 @@ emitEOF _ = do
       TokSymbol BlockClose <$> getSpan
     Nothing -> do
       popStartCode
-      pure EOF
+      EOF <$> getSpan
 
 startLayout :: ByteString -> Parser Token
 startLayout _ = do
@@ -162,6 +162,6 @@ lexer :: Parser [Token]
 lexer = do
     tok <- scan
     case tok of
-      EOF -> pure []
+      EOF _ -> pure []
       x -> (x :) <$> lexer
 }

@@ -9,6 +9,7 @@ import Data.List (foldl')
 import TeenyTT.Frontend.ConcreteSyntax qualified as CS
 
 import TeenyTT.Core.Ident
+import TeenyTT.Core.Position
 
 import TeenyTT.Core.Tactic as T
 
@@ -20,21 +21,33 @@ import TeenyTT.Core.Refiner.Structural qualified as Structural
 import TeenyTT.Core.Refiner.Univ qualified as Univ
 
 
-chkTp :: CS.Expr -> T.Tp
-chkTp (CS.Univ i) = Univ.formation  i
-chkTp CS.Nat = Nat.formation
-chkTp (CS.Pi cells body) = foldr (\(Cell x e) tac -> Pi.formation x (chkTp e) (\_ -> tac)) (chkTp body) cells
-chkTp e = El.formation (chkTm e)
+chkTp :: Loc CS.Expr -> T.Tp
+chkTp e =
+    case (unlocate e) of
+      (CS.Univ i)        -> Univ.formation i
+      CS.Nat             -> Nat.formation
+      (CS.Pi cells body) -> foldr (\(Cell x e) tac -> Pi.formation x (chkTp e) (\_ -> tac)) (chkTp body) cells
+      _                  -> El.formation (chkTm e)
 
-chkTm :: CS.Expr -> T.Chk
-chkTm (CS.Lam xs body) = foldr (\x tac -> Pi.intro x (\_ -> tac)) (chkTm body) xs
-chkTm (CS.Zero) = Nat.zero
-chkTm (CS.Suc e) = Nat.suc (chkTm e)
-chkTm (CS.NatLit n) = Nat.literal n
-chkTm (CS.Hole) = Hole.unleash
-chkTm e = T.chk (synTm e)
+-- chkTp (CS.Univ i) = Univ.formation  i
+-- chkTp CS.Nat = Nat.formation
+-- chkTp (CS.Pi cells body) = foldr (\(Cell x e) tac -> Pi.formation x (chkTp e) (\_ -> tac)) (chkTp body) cells
+-- chkTp e = El.formation (chkTm e)
 
-synTm :: CS.Expr -> T.Syn
-synTm (CS.App f args) = foldl' (\tac arg -> Pi.apply tac (chkTm arg)) (synTm f) args
-synTm (CS.Var ident) = Structural.var ident
-synTm e = error $ show e
+chkTm :: Loc CS.Expr -> T.Chk
+chkTm e =
+    case (unlocate e) of
+      (CS.Lam xs body) -> foldr (\x tac -> Pi.intro x (\_ -> tac)) (chkTm body) xs
+      CS.Zero          -> Nat.zero
+      (CS.Suc e)       -> Nat.suc (chkTm e)
+      (CS.NatLit n)    -> Nat.literal n
+      CS.Hole          -> Hole.unleash
+      _                -> T.chk (synTm e)
+
+synTm :: Loc CS.Expr -> T.Syn
+synTm e =
+    case (unlocate e) of
+      (CS.App f args) -> foldl' (\tac arg -> Pi.apply tac (chkTm arg)) (synTm f) args
+      (CS.Var ident)  -> Structural.var ident
+      _               -> error $ show e
+      

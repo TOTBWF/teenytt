@@ -4,11 +4,18 @@ module TeenyTT.Core.Position
   -- * Spans
   , Span(..)
   , contains
+  -- * Location Annotations
+  , Loc(..)
+  , unlocate
+  , Located(..)
+  , locations
   ) where
 
 import GHC.Generics
-
 import Control.DeepSeq
+
+import Data.List (foldl')
+import Data.List.NonEmpty (NonEmpty(..))
 
 --------------------------------------------------------------------------------
 -- Positions
@@ -64,3 +71,27 @@ contains big small =
       (EQ, GT) -> endCol small <= endCol big
       (LT, EQ) -> startCol big <= startCol small
       (EQ, EQ) -> (endCol small <= endCol big && startCol big <= startCol small)
+
+--------------------------------------------------------------------------------
+-- Location Annotations
+
+data Loc a = Loc Span a
+    deriving stock (Show, Generic)
+    deriving anyclass NFData
+
+unlocate :: Loc a -> a
+unlocate (Loc _ a) = a
+
+class Located a where
+    locate :: a -> Span
+
+instance Located Span where
+    {-# INLINE locate #-}
+    locate x = x
+
+instance Located (Loc a) where
+    {-# INLINE locate #-}
+    locate (Loc sp _) = sp
+
+locations :: (Located a) => NonEmpty a -> Span
+locations (x :| xs) = foldl' (\sp y -> sp <> locate y) (locate x) xs
