@@ -11,6 +11,8 @@ module TeenyTT.Frontend.Parser.Monad
   -- * Tokens
   , token
   , token_
+  , symbol
+  , keyword
   , literal
   -- * Layout
   , openBlock
@@ -19,7 +21,9 @@ module TeenyTT.Frontend.Parser.Monad
   -- * State Management
   , setInput
   , getInput
-  , getColumn
+  , getParseLine
+  , getParseColumn
+  , getSpan
   -- * Alex Primitives
   , AlexInput
   , alexGetByte
@@ -38,30 +42,32 @@ import GHC.Generics
 import Control.Monad.State.Strict
 import Control.Monad.Except
 
+import Codec.Binary.UTF8.String as UTF8
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.ByteString.Char8 qualified as BSChar
 import Data.ByteString.Internal qualified as BS
+import Data.ByteString.UTF8 qualified as UTFBS
 import Data.Text (Text)
 import Data.Text.Encoding qualified as TE
 import Data.Word (Word8)
 
-import TeenyTT.Frontend.Position
+import TeenyTT.Core.Position
 import TeenyTT.Frontend.Parser.Token
 
 newtype Parser a = Parser { unParser :: StateT ParserState (Except ParseError) a }
-    deriving (Functor, Applicative, Monad, MonadState ParserState, MonadError ParseError)
+    deriving newtype (Functor, Applicative, Monad, MonadState ParserState, MonadError ParseError)
 
 data ParserState =
-    ParserState { parseInput      :: AlexInput
-                , parseStartCodes :: (NonEmpty Int)
+    ParserState { parseInput      :: {-# UNPACK #-} AlexInput
+                , parseStartCodes :: {-# UNPACK #-} (NonEmpty Int)
                 , parseLayout     :: [Int]
                 , parseFile       :: FilePath
                 }
 
 initState :: FilePath -> [Int] -> ByteString -> ParserState
 initState path codes bs =
-    ParserState { parseInput      = Input 0 1 '\n' bs
+    ParserState { parseInput      = Input 0 1 0 1 '\n' bs []
                 , parseStartCodes = NE.fromList (codes ++ [0])
                 , parseLayout     = []
                 , parseFile       = path
@@ -106,38 +112,41 @@ popStartCode = modify' $ \st ->
 -- Errors
 
 data ParseError = ParseError
-    { errPos      :: Position
-    , errPrevByte :: ByteString
-    , errMsg      :: Text
+    { errMsg      :: Text
     } deriving (Show, Generic)
 
 instance NFData ParseError
 
 parseError :: Text -> Parser a
 parseError msg = do
-    pos <- getPosition
-    prevByte <- gets (BS.take 1 . lexBytes . parseInput)
-    throwError $ ParseError
-        { errPos = pos
-        , errPrevByte = prevByte
-        , errMsg = msg
-        }
+    throwError $ ParseError { errMsg = msg }
 
 --------------------------------------------------------------------------------
 -- Tokens
 
 {-# INLINE token #-}
-token :: (Text -> Token) -> ByteString -> Parser Token
-token k bs = pure (k $ TE.decodeUtf8 bs)
+token :: (Loc Text -> Token) -> ByteString -> Parser Token
+token k bs = do
+    sp <- getSpan
+    pure $ k $ Loc sp (TE.decodeUtf8 bs)
 
 {-# INLINE token_ #-}
 token_ :: Token -> ByteString -> Parser Token
 token_ tok _ = pure tok
 
-literal :: (Int -> Token) -> ByteString -> Parser Token
-literal k bs =
+{-# INLINE symbol #-}
+symbol :: Symbol -> ByteString -> Parser Token
+symbol sym _ = TokSymbol sym <$> getSpan
+
+keyword :: Keyword -> ByteString -> Parser Token
+keyword key _ =
+    TokKeyword key <$> getSpan
+
+literal :: (Int -> Literal) -> ByteString -> Parser Token
+literal k bs = do
+    sp <- getSpan
     case BSChar.readInt bs of
-      Just (n, _) -> pure $ k n
+      Just (n, _) -> pure $ TokLiteral $ Loc sp (k n)
       Nothing     -> parseError "Invariant Violated: Could not read literal."
 
 --------------------------------------------------------------------------------
@@ -167,34 +176,61 @@ setInput input = modify $ \s -> s { parseInput = input }
 getInput :: Parser AlexInput
 getInput = gets parseInput
 
-{-# INLINE getColumn #-}
-getColumn :: Parser Int
-getColumn = gets (lexCol . parseInput)
+{-# INLINE getParseColumn #-}
+getParseColumn :: Parser Int
+getParseColumn = gets (lexCol . parseInput)
 
-{-# INLINE getLine #-}
-getLine :: Parser Int
-getLine = gets (lexLine . parseInput)
+{-# INLINE getParseLine #-}
+getParseLine :: Parser Int
+getParseLine = gets (lexLine . parseInput)
 
-getPosition :: Parser Position
-getPosition = do
-    state <- get
-    let input = parseInput state
-    pure $ Position
-        { posLine = lexLine input
-        , posCol  = lexCol input
-        , posFile = parseFile state
-        }
+{-# INLINE getParseLastColumn #-}
+getParseLastColumn :: Parser Int
+getParseLastColumn = gets (lexPrevCol . parseInput)
+
+{-# INLINE getParseLastLine #-}
+getParseLastLine :: Parser Int
+getParseLastLine = gets (lexPrevLine . parseInput)
+
+getSpan :: Parser Span
+getSpan = do
+    startLine <- getParseLastLine
+    startCol  <- getParseLastColumn
+    endLine   <- getParseLine
+    endCol    <- getParseColumn
+    pure $ Span {..} 
 
 
 --------------------------------------------------------------------------------
 -- Alex Primitives
 -- See Section 5.2 of the Alex User Manual for some explanation of these.
+--
+-- [NOTE: Unicode Characters + Source Positions]
+-- Alex requires us to implement 'alexGetByte' when we are working with our
+-- own custom lexer monad. However, this is a bit problematic when handling
+-- unicode characters. 
+--
+-- In particular, the naive solution to handling source
+-- positions doesn't work, as UTF8 characters may occupy
+-- multiple bytes. To solve this, we keep track of a little
+-- list of bytes for each character we lex in 'lexCharBytes'.
+--
+-- Whenever we encounter a multi-byte character, we emit
+-- the first byte, and store the remaining bytes inside of that
+-- buffer. When Alex calls 'alexGetByte' again, instead of advancing
+-- our position, we pop a byte off of that buffer instead.
+-- Finally, once that buffer is exhausted, we grab another character off
+-- 'lexBytes', and the process repeats.
 
 data AlexInput =
-    Input { lexLine  :: Int
-          , lexCol   :: Int
-          , lexPrev  :: Char
-          , lexBytes :: ByteString
+    Input { lexLine      :: Int
+          , lexCol       :: Int
+          , lexPrevLine  :: Int
+          , lexPrevCol   :: Int
+          , lexPrevChar  :: Char
+          , lexBytes     :: ByteString
+          , lexCharBytes :: [Word8]
+          -- ^ See [NOTE: Unicode Characters + Source Positions]
           }
 
 {-# INLINE newline #-}
@@ -202,30 +238,55 @@ newline :: ByteString -> AlexInput -> AlexInput
 newline rest Input{..} =
     Input { lexLine = lexLine + 1
           , lexCol = 1
-          , lexPrev = '\n'
+          , lexPrevLine = lexPrevLine + 1
+          , lexPrevCol = lexCol
+          , lexPrevChar = '\n'
           , lexBytes = rest
+          , lexCharBytes = []
           }
 
 {-# INLINE nextCol #-}
 nextCol :: Char -> ByteString -> AlexInput -> AlexInput
 nextCol c rest Input{..} =
     Input { lexCol = lexCol + 1
-          , lexPrev = c
+          , lexPrevCol = lexCol
+          , lexPrevChar = c
           , lexBytes = rest
           , ..
           }
 
+{-# INLINE popBufferedBytes #-}
+popBufferedBytes :: AlexInput -> Maybe (Word8, AlexInput)
+popBufferedBytes Input{..} = 
+    case lexCharBytes of
+      [] -> Nothing
+      (b : bs) -> Just (b, Input { lexCharBytes = bs, .. })
+
+{-# INLINE bufferBytes #-}
+bufferBytes :: Char -> [Word8] -> ByteString -> AlexInput -> AlexInput
+bufferBytes c bytes rest Input{..} =
+    Input { lexPrevChar = c
+          , lexBytes = rest
+          , lexCharBytes = bytes
+          , ..
+          }
+
 alexGetByte :: AlexInput -> Maybe (Word8, AlexInput)
-alexGetByte input@Input{..} = advance <$> BS.uncons lexBytes
+alexGetByte input@Input{..} =
+    case popBufferedBytes input of
+        Nothing -> advance <$> UTFBS.uncons lexBytes
+        ok      -> ok
     where
-      advance :: (Word8, ByteString) -> (Word8, AlexInput)
-      advance (byte, rest) =
-          case BS.w2c byte of
-            '\n' -> (byte, newline rest input)
-            c    -> (byte, nextCol c rest input)
+      advance :: (Char, ByteString) -> (Word8, AlexInput)
+      advance ('\n', rest) = (BS.c2w '\n', newline rest input)
+      advance (c, rest)   =
+          case UTF8.encodeChar c of
+            [b]    -> (b, nextCol c rest input)
+            (b:bs) -> (b, bufferBytes c bs rest input)
+            []     -> error "The impossible happened! A Char decoded to 0 bytes."
 
 alexPrevInputChar :: AlexInput -> Char
-alexPrevInputChar = lexPrev
+alexPrevInputChar = lexPrevChar
 
 {-# INLINE slice #-}
 slice :: Int -> AlexInput -> ByteString

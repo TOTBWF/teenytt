@@ -16,26 +16,23 @@ module TeenyTT.Core.Eval
   ) where
 
 import Control.Monad.Reader
-import Control.Monad.Except
 
-import TeenyTT.Core.Ident
-import TeenyTT.Core.Env (Env, Index, Level)
+import TeenyTT.Core.Env (Index)
 import TeenyTT.Core.Env qualified as Env
 import TeenyTT.Core.Error as Err
 
 import TeenyTT.Core.Compute
-import TeenyTT.Core.Splice (Splice(..))
+import TeenyTT.Core.Splice (Splice)
 import TeenyTT.Core.Splice qualified as Splice
 
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
-import System.Environment (getEnvironment)
 
 -- | The Evaluation Monad.
 --
 -- All we need access to here are environments, and the ability to throw errors.
 newtype Eval a = Eval { unEval :: ReaderT D.Env Compute a }
-    deriving (Functor, Applicative, Monad, MonadReader D.Env, MonadCompute)
+    deriving newtype (Functor, Applicative, Monad, MonadReader D.Env, MonadCompute)
 
 runEval :: D.Env -> Eval a -> Compute a
 runEval env (Eval m) = runReaderT m env

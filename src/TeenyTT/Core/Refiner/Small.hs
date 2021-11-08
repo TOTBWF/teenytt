@@ -12,7 +12,6 @@ import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
 import TeenyTT.Core.Eval
-import TeenyTT.Core.Quote
 
 import TeenyTT.Core.Error qualified as Err
 import TeenyTT.Core.Splice qualified as Splice
@@ -39,7 +38,6 @@ nat = smallTac $ \case
 pi :: T.Chk -> T.Chk -> T.Chk
 pi tbase tfam = smallTac $ \case
     (D.Pi ident base fam, univ) -> do
-        quniv <- liftQuote $ quoteTp univ
         baseSmall <- T.runChk tbase (D.Small base univ)
         famtp <- spliceTp $
             Splice.tp base $ \base ->

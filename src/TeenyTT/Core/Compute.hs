@@ -21,10 +21,10 @@ import TeenyTT.Core.Domain qualified as D
 -- This provides the "least amount of structure" we need to perform any sort
 -- of manipulation of semantic values (IE: instantiating closures, etc).
 newtype Compute a = Compute { unCompute :: ReaderT (Env (D.Value, D.Type)) (ExceptT Error IO) a }
-    deriving (Functor, Applicative, Monad)
+    deriving newtype (Functor, Applicative, Monad)
 
 runCompute :: Env (D.Value, D.Type) -> Compute a -> IO (Either Error a)
-runCompute globals (Compute m) = runExceptT $ runReaderT m globals
+runCompute globals m = runExceptT $ runReaderT (unCompute m) globals
 
 class (Monad m) => MonadCompute m where
     -- | Lift a 'CmpM' into the monad 'm'.

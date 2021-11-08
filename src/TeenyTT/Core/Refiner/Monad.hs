@@ -17,7 +17,6 @@ module TeenyTT.Core.Refiner.Monad
   , getGlobal
   ) where
 
-import Data.Text (Text)
 
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -26,12 +25,11 @@ import TeenyTT.Core.Ident
 import TeenyTT.Core.Env (Env, Index, Level)
 import TeenyTT.Core.Env qualified as Env
 import TeenyTT.Core.Error (Error(..), Literal, Connective)
-import TeenyTT.Core.Error qualified as Err
 
 
-import TeenyTT.Core.Eval (Eval(..))
-import TeenyTT.Core.Quote (Quote(..))
-import TeenyTT.Core.Conversion (Convert(..))
+import TeenyTT.Core.Eval (Eval)
+import TeenyTT.Core.Quote (Quote)
+import TeenyTT.Core.Conversion (Convert)
 
 import TeenyTT.Core.Eval qualified as Eval
 import TeenyTT.Core.Quote qualified as Quote
@@ -40,11 +38,10 @@ import TeenyTT.Core.Conversion qualified as Convert
 import TeenyTT.Core.Compute (MonadCompute(..), runCompute)
 
 import TeenyTT.Core.Domain qualified as D
-import TeenyTT.Core.Syntax qualified as S
 
 -- | The Refiner Monad.
 newtype RM a = RM { unRM :: ReaderT RefineEnv (ExceptT Error IO) a }
-    deriving (Functor, Applicative, Monad, MonadReader RefineEnv)
+    deriving newtype (Functor, Applicative, Monad, MonadReader RefineEnv)
 
 instance MonadCompute RM where
     liftCompute m = RM $ ReaderT $ \RefineEnv{..} -> ExceptT $ runCompute (fmap contents rm_globals) m

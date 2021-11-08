@@ -34,6 +34,7 @@ library
       TeenyTT.Core.Error
       TeenyTT.Core.Eval
       TeenyTT.Core.Ident
+      TeenyTT.Core.Position
       TeenyTT.Core.Pretty
       TeenyTT.Core.Pretty.Unicode
       TeenyTT.Core.Quote
@@ -59,12 +60,12 @@ library
       TeenyTT.Frontend.Parser.Lexer
       TeenyTT.Frontend.Parser.Monad
       TeenyTT.Frontend.Parser.Token
-      TeenyTT.Frontend.Position
   other-modules:
       Paths_teenytt
   hs-source-dirs:
       src
-  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
+  default-extensions: BlockArguments DeriveAnyClass DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
+  ghc-options: -Wall -Wno-unused-top-binds -Wno-unused-matches -Wno-name-shadowing -Werror
   build-tools:
       alex
     , happy
@@ -80,6 +81,7 @@ library
     , silently
     , text
     , transformers
+    , utf8-string
   default-language: Haskell2010
 
 executable teenytt-exe
@@ -88,8 +90,8 @@ executable teenytt-exe
       Paths_teenytt
   hs-source-dirs:
       app
-  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  default-extensions: BlockArguments DeriveAnyClass DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
+  ghc-options: -Wall -Wno-unused-top-binds -Wno-unused-matches -Wno-name-shadowing -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -104,6 +106,7 @@ executable teenytt-exe
     , teenytt
     , text
     , transformers
+    , utf8-string
   default-language: Haskell2010
 
 test-suite teenytt-test
@@ -113,8 +116,8 @@ test-suite teenytt-test
       Paths_teenytt
   hs-source-dirs:
       test
-  default-extensions: BlockArguments DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  default-extensions: BlockArguments DeriveAnyClass DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
+  ghc-options: -Wall -Wno-unused-top-binds -Wno-unused-matches -Wno-name-shadowing -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -128,4 +131,5 @@ test-suite teenytt-test
     , teenytt
     , text
     , transformers
+    , utf8-string
   default-language: Haskell2010

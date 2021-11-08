@@ -9,32 +9,32 @@ import Control.DeepSeq
 import Data.Text (Text)
 
 import TeenyTT.Core.Pretty
+import TeenyTT.Core.Position
 import TeenyTT.Core.Ident
 
 data Expr
-    = Lam [Ident] Expr
-    | App Expr [Expr]
+    = Lam [Ident] (Loc Expr)
+    | App (Loc Expr) [Loc Expr]
     | Zero
-    | Suc Expr
+    | Suc (Loc Expr)
     | NatLit Int
     | Var Ident
     | Univ Int
     | Nat
-    | Pi [Cell Expr] Expr
+    | Pi [Cell (Loc Expr)] (Loc Expr)
     | Hole
-    | Incomplete Expr
-    deriving (Show, Generic)
-
-instance NFData Expr
+    | Incomplete (Loc Expr)
+    deriving stock (Show, Generic)
+    deriving anyclass (NFData)
 
 -- [FIXME: Reed M, 07/11/2021] Actually implement this
 instance Debug Expr where
     dump = pretty . show
 
+-- [FIXME: Reed M, 07/11/2021] Don't use 'Expr' for directive arguments!
 data Command
-    = TypeAnn Ident Expr
-    | Def Ident Expr
-    | Directive Text [Expr]
-    deriving (Show, Generic)
-
-instance NFData Command
+    = TypeAnn Ident (Loc Expr)
+    | Def Ident (Loc Expr)
+    | Directive Text [Loc Expr]
+    deriving stock (Show, Generic)
+    deriving anyclass (NFData)

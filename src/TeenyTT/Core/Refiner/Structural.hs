@@ -4,10 +4,7 @@ module TeenyTT.Core.Refiner.Structural
 
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Refiner.Monad
-import TeenyTT.Core.Eval
-import TeenyTT.Core.Error (Error(..))
 
-import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
 import TeenyTT.Core.Tactic qualified as T

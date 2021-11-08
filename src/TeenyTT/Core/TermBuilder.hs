@@ -26,11 +26,11 @@ import TeenyTT.Core.Ident
 import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
-import TeenyTT.Core.Env (Index, Level)
+import TeenyTT.Core.Env (Level)
 import TeenyTT.Core.Env qualified as Env
 
 newtype TB a = TB { unTB :: Reader Env a }
-    deriving (Functor, Applicative, Monad, MonadReader Env)
+    deriving newtype (Functor, Applicative, Monad, MonadReader Env)
 
 -- | A Term Builder 'Env' keeps track of the /number/ of types
 -- and terms that have been bound. This allows us to convert
@@ -38,9 +38,9 @@ newtype TB a = TB { unTB :: Reader Env a }
 data Env = Env { types :: Int, terms :: Int }
 
 runTB :: D.Env -> TB a -> a
-runTB env (TB tb) =
+runTB env m =
     let tbenv = Env { types = Env.size (D.tps env), terms = Env.size (D.vals env) }
-    in runReader tb tbenv
+    in runReader (unTB m) tbenv
 
 --------------------------------------------------------------------------------
 -- Level Arithmetic

@@ -27,23 +27,18 @@ import Data.Foldable
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 
-import Data.Text (Text)
-import Data.Text.IO qualified as TIO
-
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Pretty
-import TeenyTT.Core.Env (Env, Index, Level)
+import TeenyTT.Core.Env (Env)
 import TeenyTT.Core.Env qualified as Env
 
 import TeenyTT.Core.Refiner.Monad (RM)
 import TeenyTT.Core.Refiner.Monad qualified as RM
 
 import TeenyTT.Core.Domain qualified as D
-import TeenyTT.Core.Syntax qualified as S
-import qualified TeenyTT.Core.Pretty as TIO
 
 newtype Driver a = Driver { unDriver :: StateT DriverState IO a }
-    deriving (Functor, Applicative, Monad, MonadState DriverState, MonadIO)
+    deriving newtype (Functor, Applicative, Monad, MonadState DriverState, MonadIO)
 
 -- [TODO: Reed M, 07/11/2021] Thread the handle down into the refiner.
 

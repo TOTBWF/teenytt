@@ -9,7 +9,6 @@ module TeenyTT.Core.Quote
   ) where
 
 import Control.Monad.Reader
-import Control.Monad.Except
 
 import TeenyTT.Core.Ident
 import TeenyTT.Core.Env (Index, Level)
@@ -24,7 +23,7 @@ import TeenyTT.Core.Domain qualified as D
 import TeenyTT.Core.Syntax qualified as S
 
 newtype Quote a = Quote { unQuote :: ReaderT Env Compute a }
-    deriving (Functor, Applicative, Monad, MonadReader Env, MonadCompute)
+    deriving newtype (Functor, Applicative, Monad, MonadReader Env, MonadCompute)
 
 runQuote :: Env -> Quote a -> Compute a
 runQuote env (Quote m) = runReaderT m env

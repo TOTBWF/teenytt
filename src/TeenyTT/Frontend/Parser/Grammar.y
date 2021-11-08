@@ -11,11 +11,13 @@ import Data.List.NonEmpty qualified as NE
 -- FIXME: Hack
 import Data.String
 
+import TeenyTT.Core.Ident
+import TeenyTT.Core.Position
+
 import TeenyTT.Frontend.Parser.Token qualified as T
 import TeenyTT.Frontend.Parser.Monad
 
 import TeenyTT.Frontend.ConcreteSyntax
-import TeenyTT.Core.Ident
 
 
 }
@@ -34,27 +36,27 @@ import TeenyTT.Core.Ident
 %error { failure }
 
 %token
-  name      { T.Identifier $$ }
-  directive { T.Directive $$ }
-  numlit    { T.NumLit $$ }
-  type      { T.Type }
-  nat       { T.Nat }
-  suc       { T.Suc }
-  '->'      { T.Arrow }
-  forall    { T.ForAll }
-  lambda    { T.Lambda }
-  '('       { T.LParen }
-  ')'       { T.RParen }
-  '{!'      { T.LBang }
-  '!}'      { T.RBang }
-  '?'       { T.Question }
-  ':'       { T.Colon }
-  '='       { T.Equal }
-  '_'       { T.Underscore }
+  name      { T.TokIdent $$ }
+  directive { T.TokDirective $$ }
+  literal   { T.TokLiteral $$ }
+  type      { T.TokKeyword T.Type $$ }
+  nat       { T.TokKeyword T.Nat $$ }
+  suc       { T.TokKeyword T.Suc $$ }
+  '->'      { T.TokSymbol T.Arrow $$ }
+  forall    { T.TokSymbol T.ForAll $$ }
+  lambda    { T.TokSymbol T.Lambda $$ }
+  '('       { T.TokSymbol T.LParen $$ }
+  ')'       { T.TokSymbol T.RParen $$ }
+  '{!'      { T.TokSymbol T.LBang $$ }
+  '!}'      { T.TokSymbol T.RBang $$ }
+  '?'       { T.TokSymbol T.Question $$ }
+  ':'       { T.TokSymbol T.Colon $$ }
+  '='       { T.TokSymbol T.Equal $$ }
+  '_'       { T.TokSymbol T.Underscore $$ }
   -- Layout Tokens
-  block_open   { T.BlockOpen }
-  block_break  { T.BlockBreak }
-  block_close  { T.BlockClose }
+  block_open   { T.TokSymbol T.BlockOpen $$ }
+  block_break  { T.TokSymbol T.BlockBreak $$ }
+  block_close  { T.TokSymbol T.BlockClose $$ }
 
 %right '->'
 
@@ -76,54 +78,54 @@ cmds : cmd block_break       { [$1] }
      | cmd block_break cmds  { $1 : $3 }
 
 cmd :: { Command }
-cmd : ident ':' expr  { TypeAnn $1 $3 }
-    | ident '=' expr  { Def $1 $3 }
-    | directive exprs { Directive $1 $2 }
+cmd : plain_ident ':' expr  { TypeAnn $1 $3 }
+    | plain_ident '=' expr  { Def $1 $3 }
+    | directive exprs { Directive (unlocate $1) $2 }
 
 --------------------------------------------------------------------------------
 -- Expressions
 
-expr :: { Expr }
+expr :: { Loc Expr }
 expr : app    { atoms $1 }
      | arrow  { $1 }
 
-exprs :: { [Expr] }
+exprs :: { [Loc Expr] }
 exprs : {- empty -} { [] }
       | app         { reverse (NE.toList $1) }
     
 
-arrow :: { Expr }
-arrow : forall tele_cells '->' expr { Pi $2 $4 }
-      | cell '->' expr              { Pi [$1] $3 }
-      | lambda idents '->' expr     { Lam $2 $4 }
+arrow :: { Loc Expr }
+arrow : forall tele_cells '->' expr { Loc (locate $1 <> locate $4) (Pi $2 $4) }
+      | cell '->' expr              { Loc (locate $1 <> locate $3) (Pi [$1] $3) }
+      | lambda idents '->' expr     { Loc (locate $1 <> locate $4) (Lam $2 $4) }
 
-app :: { NonEmpty Expr }
+app :: { NonEmpty (Loc Expr) }
 app :  app atom { $2 <| $1 }
     |  atom     { $1 :| [] }
 
 -- [FIXME: Reed M, 06/11/2021] Add rule for 'Type' without
 -- a universe level.
-atom :: { Expr }
+atom :: { Loc Expr }
 atom : '(' expr ')'                { $2 }
-     | '?'                         { Hole }
-     | '{!' expr '!}'              { Incomplete $2 }
-     | ident                       { Var $1 }
-     | numlit                      { NatLit $1 }
-     | nat                         { Nat }
-     | suc atom                    { Suc $2 }
-     | type numlit                 { Univ $2 }
+     | '?'                         { Loc (locate $1) Hole }
+     | '{!' expr '!}'              { Loc (locate $1 <> locate $2) (Incomplete $2) }
+     | ident                       { Loc (locate $1) (Var (unlocate $1)) }
+     | literal                     { Loc (locate $1) (NatLit (natlit $ unlocate $1)) }
+     | nat                         { Loc (locate $1) Nat }
+     | suc atom                    { Loc (locate $1 <> locate $2) (Suc $2) }
+     | type literal                { Loc (locate $1 <> locate $2) (Univ (natlit $ unlocate $2)) }
 
 --------------------------------------------------------------------------------
 -- Identifiers + Cells
 
-cell :: { Cell Expr }
-cell : '(' ident ':' expr ')' { Cell $2 $4 }
+cell :: { Cell (Loc Expr) }
+cell : '(' plain_ident ':' expr ')' { Cell $2 $4 }
      | app %shift             { Cell Anon (atoms $1) }
 
-tele_cells :: { [Cell Expr] }
+tele_cells :: { [Cell (Loc Expr)] }
 tele_cells : tele_cells_r { reverse $1 }
 
-tele_cells_r :: { [Cell Expr] }
+tele_cells_r :: { [Cell (Loc Expr)] }
 tele_cells_r : tele_cells_r cell { $2 : $1 }
              | cell              { [$1] }
 
@@ -131,18 +133,25 @@ idents :: { [Ident] }
 idents : idents_r { reverse $1 }
 
 idents_r :: { [Ident] }
-idents_r : ident { [$1] }
-         | idents_r ident { $2 : $1 }
+idents_r : plain_ident { [$1] }
+         | idents_r plain_ident { $2 : $1 }
 
-ident :: { Ident }
-ident : name { User $1 }
-      | '_'  { Anon }
+plain_ident :: { Ident }
+plain_ident : ident { unlocate $1 }
+
+ident :: { Loc Ident }
+ident : name { Loc (locate $1) (User (unlocate $1)) }
+      | '_'  { Loc (locate $1) Anon }
 
 {
-atoms ::  NonEmpty Expr -> Expr
+atoms :: NonEmpty (Loc Expr) -> (Loc Expr)
 atoms xs = case NE.reverse xs of
   (x :| []) -> x
-  (x :| xs) -> App x xs
+  (x :| xs) -> Loc (locations (x :| xs)) (App x xs)
+
+-- [FIXME: Reed M, 07/11/2021] Handle literals better!
+natlit :: T.Literal -> Int
+natlit (T.NumLit n) = n
 
 
 --------------------------------------------------------------------------------

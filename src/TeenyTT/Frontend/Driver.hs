@@ -12,7 +12,6 @@ import Control.Monad.Reader
 
 import Data.Foldable
 
-import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.Int
 import Data.Text (Text)
@@ -21,19 +20,18 @@ import Data.Text qualified as T
 import System.IO.Silently
 
 import Criterion.Measurement qualified as Bench
-import Criterion.Measurement.Types qualified as Bench (nf, nfAppIO, Measured (..), fromInt)
+import Criterion.Measurement.Types qualified as Bench (nf, nfAppIO, Measured (..))
 
 import TeenyTT.Core.Ident
-import TeenyTT.Core.Env (Env)
-import TeenyTT.Core.Env qualified as Env
-import TeenyTT.Core.Refiner.Monad qualified as RM
 import TeenyTT.Core.Pretty
+import TeenyTT.Core.Position
+
+import TeenyTT.Core.Refiner.Monad qualified as RM
 
 import TeenyTT.Core.Eval qualified as Eval
 import TeenyTT.Core.Quote qualified as Quote
 
 import TeenyTT.Core.Domain qualified as D
-import TeenyTT.Core.Syntax qualified as S
 import TeenyTT.Core.Tactic qualified as T
 
 import TeenyTT.Frontend.ConcreteSyntax qualified as CS
@@ -45,7 +43,7 @@ import TeenyTT.Frontend.Driver.Monad
 --------------------------------------------------------------------------------
 -- Commands
 
-elabChkTp :: CS.Expr -> Driver D.Type
+elabChkTp :: Loc CS.Expr -> Driver D.Type
 elabChkTp e = do
     message Debug $ "Checking Type" <+> squotes (dump e)
     tp <- liftRM $ T.runTp $ Elab.chkTp e
@@ -54,7 +52,7 @@ elabChkTp e = do
     message Debug $ "Evaluated Type" <+> squotes (dump vtp)
     pure vtp
 
-elabChkTm :: CS.Expr -> D.Type -> Driver (D.Value, D.Type)
+elabChkTm :: Loc CS.Expr -> D.Type -> Driver (D.Value, D.Type)
 elabChkTm e tp = do
     message Debug $ "Checking Term" <+> squotes (dump e) <+> "of type" <+> squotes (dump tp)
     tm <- liftRM $ T.runChk (Elab.chkTm e) tp
@@ -63,7 +61,7 @@ elabChkTm e tp = do
     message Debug $ "Evaluated Term" <+> squotes (dump vtm)
     pure (vtm, tp)
 
-elabSynTm :: CS.Expr -> Driver (D.Value, D.Type)
+elabSynTm :: Loc CS.Expr -> Driver (D.Value, D.Type)
 elabSynTm e = do
     message Debug $ "Synthesizing Term" <+> squotes (dump e)
     (tm, tp) <- liftRM $ T.runSyn $ Elab.synTm e
@@ -93,14 +91,14 @@ command (CS.Def x e) = do
       Just tp -> elabChkTm e tp
       Nothing -> elabSynTm e
     bindGlobal x tm tp
-command (CS.Directive "print" [CS.Var x]) = do
+command (CS.Directive "print" [unlocate -> CS.Var x]) = do
     binding <- getGlobal x
     case binding of
       Just (tm, tp) -> printBinding x tm tp
       Nothing       -> message Error $ "No such variable" <+> squotes (pretty x)
-command (CS.Directive "debug" [CS.Var (User "on")]) =
+command (CS.Directive "debug" [unlocate -> CS.Var (User "on")]) =
     setDebugMode True
-command (CS.Directive "debug" [CS.Var (User "off")]) =
+command (CS.Directive "debug" [unlocate -> CS.Var (User "off")]) =
     setDebugMode False
 command (CS.Directive dir _) =
     message Error $ "Unsupported Directive:" <+> squotes (pretty dir)

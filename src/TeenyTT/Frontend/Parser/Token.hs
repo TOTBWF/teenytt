@@ -1,14 +1,18 @@
 module TeenyTT.Frontend.Parser.Token
-  ( Token(..)
+  ( Symbol(..)
+  , Keyword(..)
+  , Literal(..)
+  , Token(..)
   ) where
 
 import GHC.Generics
-
 import Control.DeepSeq
 
 import Data.Text (Text)
 
-data Token
+import TeenyTT.Core.Position
+
+data Symbol
     = Colon
     | Arrow
     | Lambda
@@ -19,21 +23,41 @@ data Token
     | LBang
     | RBang
     | Question
-    -- Keywords
-    | Type
-    | Nat
-    | Suc
-    -- Literals
-    | NumLit Int
-    -- Identifiers
-    | Identifier Text
-    | Directive Text
     | Underscore
     -- Layout
     | BlockOpen
     | BlockBreak
     | BlockClose
-    | EOF
-    deriving (Show, Generic)
+    deriving stock (Show, Generic)
+    deriving anyclass NFData
 
-instance NFData Token
+data Keyword
+    = Type
+    | Nat
+    | Suc
+    deriving stock (Show, Generic)
+    deriving anyclass NFData
+
+
+data Literal
+    = NumLit Int
+    deriving stock (Show, Generic)
+    deriving anyclass NFData
+
+data Token
+    = TokSymbol Symbol Span
+    | TokKeyword Keyword Span
+    | TokLiteral {-# UNPACK #-} (Loc Literal)
+    | TokIdent {-# UNPACK #-} (Loc Text)
+    | TokDirective {-# UNPACk #-} (Loc Text)
+    | EOF Span
+    deriving (Show, Generic)
+    deriving anyclass NFData
+
+instance Located Token where
+    locate (TokSymbol _ sp)   = sp
+    locate (TokKeyword _ sp)  = sp
+    locate (TokLiteral loc)   = locate loc
+    locate (TokIdent loc)     = locate loc
+    locate (TokDirective loc) = locate loc
+    locate (EOF sp)           = sp
