@@ -33,6 +33,7 @@ dependencies:
 - silently
 - text
 - transformers
+- utf8-string
 
 default-extensions:
   - BlockArguments
