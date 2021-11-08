@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "teenytt:lib"
+
+    - path: "./app/Main.hs"
+      component: "teenytt:exe:teenytt-exe"
+
+    - path: "./app/Paths_teenytt.hs"
+      component: "teenytt:exe:teenytt-exe"
+
+    - path: "./test"
+      component: "teenytt:test:teenytt-test"
