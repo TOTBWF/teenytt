@@ -198,7 +198,7 @@ located a = do
 -- In particular, the naive solution to handling source
 -- positions doesn't work, as UTF8 characters may occupy
 -- multiple bytes. To solve this, we keep track of a little
--- list of bytes for each character we lex in 'lexCharBytes'.
+-- list of bytes for each character we lex in 'lexPendingBytes'.
 --
 -- Whenever we encounter a multi-byte character, we emit
 -- the first byte, and store the remaining bytes inside of that
@@ -208,20 +208,20 @@ located a = do
 -- 'lexBytes', and the process repeats.
 
 data AlexInput =
-    Input { lexPos       :: Position
-          , lexPrevChar  :: Char
-          , lexBytes     :: ByteString
-          , lexCharBytes :: [Word8]
+    Input { lexPos          :: Position
+          , lexPrevChar     :: Char
+          , lexBytes        :: ByteString
+          , lexPendingBytes :: [Word8]
           -- ^ See [NOTE: Unicode Characters + Source Positions]
           }
 
-{-# INLINE newline #-}
-newline :: ByteString -> AlexInput -> AlexInput
-newline rest Input{..} =
+{-# INLINE nextLine #-}
+nextLine :: ByteString -> AlexInput -> AlexInput
+nextLine rest Input{..} =
     Input { lexPos = lexPos { posLine = posLine lexPos + 1, posCol = 1 }
           , lexPrevChar = '\n'
           , lexBytes = rest
-          , lexCharBytes = []
+          , lexPendingBytes = []
           }
 
 {-# INLINE nextCol #-}
@@ -236,16 +236,16 @@ nextCol c rest Input{..} =
 {-# INLINE popBufferedBytes #-}
 popBufferedBytes :: AlexInput -> Maybe (Word8, AlexInput)
 popBufferedBytes Input{..} = 
-    case lexCharBytes of
+    case lexPendingBytes of
       [] -> Nothing
-      (b : bs) -> Just (b, Input { lexCharBytes = bs, .. })
+      (b : bs) -> Just (b, Input { lexPendingBytes = bs, .. })
 
 {-# INLINE bufferBytes #-}
 bufferBytes :: Char -> [Word8] -> ByteString -> AlexInput -> AlexInput
 bufferBytes c bytes rest Input{..} =
     Input { lexPrevChar = c
           , lexBytes = rest
-          , lexCharBytes = bytes
+          , lexPendingBytes = bytes
           , ..
           }
 
@@ -256,13 +256,14 @@ alexGetByte input@Input{..} =
         ok      -> ok
     where
       advanceChar :: (Char, ByteString) -> (Word8, AlexInput)
-      advanceChar ('\n', rest) = (BS.c2w '\n', newline rest input)
+      advanceChar ('\n', rest) = (BS.c2w '\n', nextLine rest input)
       advanceChar (c, rest)   =
           case UTF8.encodeChar c of
             [b]    -> (b, nextCol c rest input)
             (b:bs) -> (b, bufferBytes c bs rest input)
             []     -> error "The impossible happened! A Char decoded to 0 bytes."
 
+{-# INLINE alexPrevInputChar #-}
 alexPrevInputChar :: AlexInput -> Char
 alexPrevInputChar = lexPrevChar
 
