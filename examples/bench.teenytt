@@ -1,0 +1,67 @@
+-- You can press 'C-c C-l' in emacs to load this file,
+-- provided you have the emacs mode installed.
+
+-- The identity function
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+-- Enables printing of debug messages.
+-- You can optionally provide the '--debug' flag
+-- to the 'teenytt' executable.
+
+const : ∀ (A : Type 0) (B : Type 0) → A → B → A
+const = λ _ _ a _ → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a
+
+id : ∀ (x : Type 0) (a : x) → x
+id = λ _ a → a

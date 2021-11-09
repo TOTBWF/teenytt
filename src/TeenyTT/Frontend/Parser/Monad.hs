@@ -10,7 +10,6 @@ module TeenyTT.Frontend.Parser.Monad
   , parseError
   -- * Tokens
   , token
-  , token_
   , symbol
   , keyword
   , literal
@@ -19,11 +18,11 @@ module TeenyTT.Frontend.Parser.Monad
   , closeBlock
   , currentBlock
   -- * State Management
-  , setInput
+  , advance
   , getInput
-  , getParseLine
   , getParseColumn
-  , getSpan
+  , location
+  , located
   -- * Alex Primitives
   , AlexInput
   , alexGetByte
@@ -63,14 +62,16 @@ data ParserState =
                 , parseStartCodes :: {-# UNPACK #-} (NonEmpty Int)
                 , parseLayout     :: [Int]
                 , parseFile       :: FilePath
+                , parseSpan       :: Span
                 }
 
 initState :: FilePath -> [Int] -> ByteString -> ParserState
 initState path codes bs =
-    ParserState { parseInput      = Input 0 1 0 1 '\n' bs []
+    ParserState { parseInput      = Input (Pos 0 1) '\n' bs []
                 , parseStartCodes = NE.fromList (codes ++ [0])
                 , parseLayout     = []
                 , parseFile       = path
+                , parseSpan       = Span (Pos 0 1) (Pos 0 1)
                 }
 
 runParser :: FilePath -> [Int] -> ByteString -> Parser a -> Either ParseError a
@@ -126,27 +127,19 @@ parseError msg = do
 
 {-# INLINE token #-}
 token :: (Loc Text -> Token) -> ByteString -> Parser Token
-token k bs = do
-    sp <- getSpan
-    pure $ k $ Loc sp (TE.decodeUtf8 bs)
-
-{-# INLINE token_ #-}
-token_ :: Token -> ByteString -> Parser Token
-token_ tok _ = pure tok
+token k bs = k <$> located (TE.decodeUtf8 bs)
 
 {-# INLINE symbol #-}
 symbol :: Symbol -> ByteString -> Parser Token
-symbol sym _ = TokSymbol sym <$> getSpan
+symbol sym _ = TokSymbol sym <$> location
 
 keyword :: Keyword -> ByteString -> Parser Token
-keyword key _ =
-    TokKeyword key <$> getSpan
+keyword key _ = TokKeyword key <$> location
 
 literal :: (Int -> Literal) -> ByteString -> Parser Token
-literal k bs = do
-    sp <- getSpan
+literal k bs =
     case BSChar.readInt bs of
-      Just (n, _) -> pure $ TokLiteral $ Loc sp (k n)
+      Just (n, _) -> TokLiteral <$> located (k n)
       Nothing     -> parseError "Invariant Violated: Could not read literal."
 
 --------------------------------------------------------------------------------
@@ -168,9 +161,12 @@ currentBlock = gets (listToMaybe . parseLayout)
 --------------------------------------------------------------------------------
 -- State Management
 
-{-# INLINE setInput #-}
-setInput :: AlexInput -> Parser ()
-setInput input = modify $ \s -> s { parseInput = input }
+{-# INLINE advance #-}
+advance :: AlexInput -> Parser ()
+advance input@Input{ lexPos } = do
+    modify' $ \s -> s { parseInput = input
+                      , parseSpan = Span (endPos $ parseSpan s) lexPos
+                      }
 
 {-# INLINE getInput #-}
 getInput :: Parser AlexInput
@@ -178,28 +174,17 @@ getInput = gets parseInput
 
 {-# INLINE getParseColumn #-}
 getParseColumn :: Parser Int
-getParseColumn = gets (lexCol . parseInput)
+getParseColumn = gets (posCol . lexPos . parseInput)
 
-{-# INLINE getParseLine #-}
-getParseLine :: Parser Int
-getParseLine = gets (lexLine . parseInput)
+{-# INLINE location #-}
+location :: Parser Span
+location = gets parseSpan
 
-{-# INLINE getParseLastColumn #-}
-getParseLastColumn :: Parser Int
-getParseLastColumn = gets (lexPrevCol . parseInput)
-
-{-# INLINE getParseLastLine #-}
-getParseLastLine :: Parser Int
-getParseLastLine = gets (lexPrevLine . parseInput)
-
-getSpan :: Parser Span
-getSpan = do
-    startLine <- getParseLastLine
-    startCol  <- getParseLastColumn
-    endLine   <- getParseLine
-    endCol    <- getParseColumn
-    pure $ Span {..} 
-
+{-# INLINE located #-}
+located :: a -> Parser (Loc a)
+located a = do
+    sp <- location
+    pure $ (Loc sp a)
 
 --------------------------------------------------------------------------------
 -- Alex Primitives
@@ -223,10 +208,7 @@ getSpan = do
 -- 'lexBytes', and the process repeats.
 
 data AlexInput =
-    Input { lexLine      :: Int
-          , lexCol       :: Int
-          , lexPrevLine  :: Int
-          , lexPrevCol   :: Int
+    Input { lexPos       :: Position
           , lexPrevChar  :: Char
           , lexBytes     :: ByteString
           , lexCharBytes :: [Word8]
@@ -236,10 +218,7 @@ data AlexInput =
 {-# INLINE newline #-}
 newline :: ByteString -> AlexInput -> AlexInput
 newline rest Input{..} =
-    Input { lexLine = lexLine + 1
-          , lexCol = 1
-          , lexPrevLine = lexPrevLine + 1
-          , lexPrevCol = lexCol
+    Input { lexPos = lexPos { posLine = posLine lexPos + 1, posCol = 1 }
           , lexPrevChar = '\n'
           , lexBytes = rest
           , lexCharBytes = []
@@ -248,8 +227,7 @@ newline rest Input{..} =
 {-# INLINE nextCol #-}
 nextCol :: Char -> ByteString -> AlexInput -> AlexInput
 nextCol c rest Input{..} =
-    Input { lexCol = lexCol + 1
-          , lexPrevCol = lexCol
+    Input { lexPos = lexPos { posCol = posCol lexPos + 1 }
           , lexPrevChar = c
           , lexBytes = rest
           , ..
@@ -274,12 +252,12 @@ bufferBytes c bytes rest Input{..} =
 alexGetByte :: AlexInput -> Maybe (Word8, AlexInput)
 alexGetByte input@Input{..} =
     case popBufferedBytes input of
-        Nothing -> advance <$> UTFBS.uncons lexBytes
+        Nothing -> advanceChar <$> UTFBS.uncons lexBytes
         ok      -> ok
     where
-      advance :: (Char, ByteString) -> (Word8, AlexInput)
-      advance ('\n', rest) = (BS.c2w '\n', newline rest input)
-      advance (c, rest)   =
+      advanceChar :: (Char, ByteString) -> (Word8, AlexInput)
+      advanceChar ('\n', rest) = (BS.c2w '\n', newline rest input)
+      advanceChar (c, rest)   =
           case UTF8.encodeChar c of
             [b]    -> (b, nextCol c rest input)
             (b:bs) -> (b, bufferBytes c bs rest input)

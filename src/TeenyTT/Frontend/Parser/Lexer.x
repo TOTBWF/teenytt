@@ -6,7 +6,6 @@ import Data.ByteString (ByteString)
 import TeenyTT.Frontend.Parser.Monad
 import TeenyTT.Frontend.Parser.Token
 
-
 }
 
 $digit = 0-9
@@ -81,10 +80,10 @@ emitEOF _ = do
   case block of
     Just _ -> do
       closeBlock
-      TokSymbol BlockClose <$> getSpan
+      TokSymbol BlockClose <$> location
     Nothing -> do
       popStartCode
-      EOF <$> getSpan
+      EOF <$> location
 
 startLayout :: ByteString -> Parser Token
 startLayout _ = do
@@ -100,13 +99,13 @@ startLayout _ = do
     then pushStartCode empty_layout
     else openBlock col
 
-  TokSymbol BlockOpen <$> getSpan
+  TokSymbol BlockOpen <$> location
 
 emptyLayout :: ByteString -> Parser Token
 emptyLayout _ = do
   popStartCode
   pushStartCode newline
-  TokSymbol BlockClose <$> getSpan
+  TokSymbol BlockClose <$> location
 
 -- | The offsides rule gets invoked every time we encounter
 --   a newline, and determines if we ought to continue with
@@ -125,7 +124,7 @@ offsides _ = do
           -- state and then also emit a token denoting
           -- that there was a linebreak within the block.
           popStartCode
-          TokSymbol BlockBreak <$> getSpan
+          TokSymbol BlockBreak <$> location
         GT -> do
           -- If the current column is greater than
           -- the layout column, we exit out of the 'newline'
@@ -137,7 +136,7 @@ offsides _ = do
           -- If the current cloumn is less than
           -- the layout column, we need to close out the block!
           closeBlock
-          TokSymbol BlockClose <$> getSpan
+          TokSymbol BlockClose <$> location
     Nothing -> do
       -- If we aren't currently in a layout context,
       -- exit out of the 'newline' state and keep scanning.
@@ -152,10 +151,10 @@ scan = do
       AlexEOF -> handleEOF
       AlexError rest -> parseError "Lexer Error"
       AlexSkip rest len -> do
-        setInput rest
+        advance rest
         scan
       AlexToken rest nbytes action -> do
-        setInput rest
+        advance rest
         action (slice nbytes input)
 
 lexer :: Parser [Token]
