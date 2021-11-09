@@ -23,6 +23,17 @@
   ;; TODO: Error highlighting regexes
   )
 
+(defun teenytt-toggle-debug ()
+  "Toggle TeenyTT's debug mode."
+  (interactive)
+  (if (member "--debug" teenytt-load-options)
+      (progn
+	(setq teenytt-load-options (delete "--debug" teenytt-load-options))
+	(message "TeenyTT Debug Mode Disabled."))
+    (push "--debug" teenytt-load-options)
+    (message "TeenyTT Debug Mode Enabled.")))
+
+
 (defun teenytt-load-buffer ()
   "Load the current file into teenytt."
   (interactive)
@@ -38,7 +49,8 @@
   "Major mode for TeenyTT."
   (set (make-local-variable 'comment-start) "-- ")
 
-  (define-key teenytt-mode-map (kbd "C-c C-l") 'teenytt-load-buffer))
+  (define-key teenytt-mode-map (kbd "C-c C-l") 'teenytt-load-buffer)
+  (define-key teenytt-mode-map (kbd "C-c C-x C-d") 'teenytt-toggle-debug))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.teenytt\\'" . teenytt-mode))
