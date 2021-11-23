@@ -45,29 +45,29 @@ import TeenyTT.Frontend.Driver.Monad
 
 elabChkTp :: Loc CS.Expr -> Driver D.Type
 elabChkTp e = do
-    message Debug $ "Checking Type" <+> squotes (dump e)
+    message Debug $ "Checking Type" <+> squotes (dump NoPrec e)
     tp <- liftRM $ T.runTp $ Elab.chkTp e
-    message Debug $ "Elaborated Type" <+> squotes (dump tp)
+    message Debug $ "Elaborated Type" <+> squotes (dump NoPrec tp)
     vtp <- liftRM $ RM.liftEval $ Eval.evalTp tp
-    message Debug $ "Evaluated Type" <+> squotes (dump vtp)
+    message Debug $ "Evaluated Type" <+> squotes (dump NoPrec vtp)
     pure vtp
 
 elabChkTm :: Loc CS.Expr -> D.Type -> Driver (D.Value, D.Type)
 elabChkTm e tp = do
-    message Debug $ "Checking Term" <+> squotes (dump e) <+> "of type" <+> squotes (dump tp)
+    message Debug $ "Checking Term" <+> squotes (dump NoPrec e) <+> "of type" <+> squotes (dump NoPrec tp)
     tm <- liftRM $ T.runChk (Elab.chkTm e) tp
-    message Debug $ "Evaluating Term" <+> squotes (dump tm)
+    message Debug $ "Evaluating Term" <+> squotes (dump NoPrec tm)
     vtm <- liftRM $ RM.liftEval $ Eval.eval tm
-    message Debug $ "Evaluated Term" <+> squotes (dump vtm)
+    message Debug $ "Evaluated Term" <+> squotes (dump NoPrec vtm)
     pure (vtm, tp)
 
 elabSynTm :: Loc CS.Expr -> Driver (D.Value, D.Type)
 elabSynTm e = do
-    message Debug $ "Synthesizing Term" <+> squotes (dump e)
+    message Debug $ "Synthesizing Term" <+> squotes (dump NoPrec e)
     (tm, tp) <- liftRM $ T.runSyn $ Elab.synTm e
-    message Debug $ "Elaborated Term" <+> squotes (dump tm) <+> "of type" <+> squotes (dump tp)
+    message Debug $ "Elaborated Term" <+> squotes (dump NoPrec tm) <+> "of type" <+> squotes (dump NoPrec tp)
     vtm <- liftRM $ RM.liftEval $ Eval.eval tm
-    message Debug $ "Evaluated Term" <+> squotes (dump vtm)
+    message Debug $ "Evaluated Term" <+> squotes (dump NoPrec vtm)
     pure (vtm, tp)
 
 printBinding :: Ident -> D.Value -> D.Type -> Driver ()
@@ -77,8 +77,8 @@ printBinding x tm tp = do
     divider
     message Info $ nest 2 $ vsep
       [ "Printing" <+> pretty x
-      , pretty x <+> colon <+> dump qtp
-      , pretty x <+> equals <+> dump qtm
+      , pretty x <+> colon <+> dump NoPrec qtp
+      , pretty x <+> equals <+> dump NoPrec qtm
       ]
 
 command :: CS.Command -> Driver ()
@@ -91,14 +91,14 @@ command (CS.Def x e) = do
       Just tp -> elabChkTm e tp
       Nothing -> elabSynTm e
     bindGlobal x tm tp
-command (CS.Directive "print" [unlocate -> CS.Var x]) = do
+command (CS.Directive "#print" [unlocate -> CS.Var x]) = do
     binding <- getGlobal x
     case binding of
       Just (tm, tp) -> printBinding x tm tp
       Nothing       -> message Error $ "No such variable" <+> squotes (pretty x)
-command (CS.Directive "debug" [unlocate -> CS.Var (User "on")]) =
+command (CS.Directive "#debug" [unlocate -> CS.Var (User "on")]) =
     setDebugMode True
-command (CS.Directive "debug" [unlocate -> CS.Var (User "off")]) =
+command (CS.Directive "#debug" [unlocate -> CS.Var (User "off")]) =
     setDebugMode False
 command (CS.Directive dir _) =
     message Error $ "Unsupported Directive:" <+> squotes (pretty dir)

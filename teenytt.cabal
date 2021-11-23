@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.3.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 
@@ -64,7 +64,24 @@ library
       Paths_teenytt
   hs-source-dirs:
       src
-  default-extensions: BlockArguments DeriveAnyClass DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
+  default-extensions:
+      BlockArguments
+      DeriveAnyClass
+      DeriveFoldable
+      DeriveFunctor
+      DeriveTraversable
+      DeriveGeneric
+      DerivingStrategies
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      NamedFieldPuns
+      OverloadedStrings
+      RecordWildCards
+      StrictData
+      ViewPatterns
   ghc-options: -Wall -Wno-unused-top-binds -Wno-unused-matches -Wno-name-shadowing -Werror
   build-tools:
       alex
@@ -90,7 +107,24 @@ executable teenytt-exe
       Paths_teenytt
   hs-source-dirs:
       app
-  default-extensions: BlockArguments DeriveAnyClass DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
+  default-extensions:
+      BlockArguments
+      DeriveAnyClass
+      DeriveFoldable
+      DeriveFunctor
+      DeriveTraversable
+      DeriveGeneric
+      DerivingStrategies
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      NamedFieldPuns
+      OverloadedStrings
+      RecordWildCards
+      StrictData
+      ViewPatterns
   ghc-options: -Wall -Wno-unused-top-binds -Wno-unused-matches -Wno-name-shadowing -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -116,7 +150,24 @@ test-suite teenytt-test
       Paths_teenytt
   hs-source-dirs:
       test
-  default-extensions: BlockArguments DeriveAnyClass DeriveFoldable DeriveFunctor DeriveTraversable DeriveGeneric DerivingStrategies FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving ImportQualifiedPost LambdaCase NamedFieldPuns OverloadedStrings RecordWildCards StrictData ViewPatterns
+  default-extensions:
+      BlockArguments
+      DeriveAnyClass
+      DeriveFoldable
+      DeriveFunctor
+      DeriveTraversable
+      DeriveGeneric
+      DerivingStrategies
+      FlexibleContexts
+      FlexibleInstances
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      NamedFieldPuns
+      OverloadedStrings
+      RecordWildCards
+      StrictData
+      ViewPatterns
   ghc-options: -Wall -Wno-unused-top-binds -Wno-unused-matches -Wno-name-shadowing -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array

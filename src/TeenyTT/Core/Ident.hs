@@ -34,11 +34,11 @@ instance Pretty Ident where
     pretty Anon       = "_"
 
 instance Debug Ident where
-    dump (User txt) = pretty txt
-    dump Anon       = "_"
+    dump _ (User txt) = pretty txt
+    dump _ Anon       = "_"
 
 instance Debug a => Debug (Cell a) where
-    dump Cell{..} = dump ident <+> ":" <+> dump contents
+    dump prec Cell{..} = parensIf (prec > NoPrec) (pretty ident <+> ":" <+> dump AnnPrec contents)
 
 instance (Located a) => Located (Cell a) where
     locate (Cell _ a) = locate a

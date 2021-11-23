@@ -134,10 +134,10 @@ unsafeLevel n | n >= 0 = Level n
 -- Pretty Printing
 
 instance (Debug a) => Debug (Env a) where
-    dump (Env {..}) = hsep $ punctuate ", " (toList $ fmap dump bindings)
+    dump prec (Env {..}) = hsep $ punctuate ", " (toList $ fmap (dump prec) bindings)
 
-instance Debug Index where
-    dump (Index ix) = pretty ix
+instance Pretty Index where
+    pretty (Index ix) = pretty ix
 
-instance Debug Level where
-    dump (Level l) = pretty l
+instance Pretty Level where
+    pretty (Level l) = pretty l

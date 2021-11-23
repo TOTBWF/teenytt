@@ -1,5 +1,7 @@
 module TeenyTT.Core.Pretty
   ( module Pp
+  , Precedence(..)
+  , parensIf
   , Debug(..)
   , Display(..)
   -- * IO
@@ -13,21 +15,41 @@ import Prettyprinter.Render.Text as Render
 
 import TeenyTT.Core.Position
 
+--------------------------------------------------------------------------------
+-- Precedence
+
+data Precedence
+    = NoPrec
+    -- ^ No precedence.
+    | AnnPrec
+    -- ^ The precedence of a type annotation.
+    | AppPrec
+    -- ^ The precedence of a function application.
+    deriving stock (Show, Eq, Ord)
+
+-- | Optionally wrap a document in parens.
+parensIf :: Bool -> Doc ann -> Doc ann
+parensIf True  d = parens d
+parensIf False d = d
+
+--------------------------------------------------------------------------------
+-- Debugging
+
 -- | 'Debug' lives somewhere between 'Show' and 'Display'.
 -- We often want to display some term, but we may not have
 -- the context for providing good names.
 class Debug a where
-    dump :: a -> Doc ann
-
-instance (Debug a, Debug b) => Debug (a, b) where
-    dump (a, b) = parens (dump a <> comma <+> dump b)
+    dump :: Precedence -> a -> Doc ann
 
 instance Debug a => Debug (Loc a) where
-    dump (Loc _ a) = dump a
+    dump prec (Loc _ a) = dump prec a
 
--- [FIXME: Reed M, 06/11/2021] Fill in this class
+--------------------------------------------------------------------------------
+-- Display
+
+-- | 'Display' is intended for user facing display of terms.
 class Display a where
-    display :: a -> Doc ann
+    display :: Precedence -> a -> Doc ann
 
 --------------------------------------------------------------------------------
 -- IO

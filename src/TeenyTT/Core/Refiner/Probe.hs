@@ -22,8 +22,8 @@ import TeenyTT.Core.Tactic qualified as T
 
 renderGoal :: Env (Cell S.Type) -> S.Type -> Doc ann
 renderGoal ctx tp =
-    vsep [ vsep (toList $ fmap dump ctx)
-         , Pp.turnstile <+> dump tp
+    vsep [ vsep (toList $ fmap (dump NoPrec) ctx)
+         , Pp.turnstile <+> dump NoPrec tp
          ]
 
 destructCtx :: Env (Cell (a, D.Type)) -> RM (Env (Cell S.Type))

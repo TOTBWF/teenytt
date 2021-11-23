@@ -122,38 +122,38 @@ hole nm tp = Cut (Neutral (Hole nm) []) tp
 -- NOTE: We only really care about the values here, the type environment isn't
 -- of too much interest.
 instance Debug Env where
-    dump (Env {..}) = dump vals
+    dump prec (Env {..}) = dump prec vals
 
 instance Debug Value where
-    dump (Lam x clo) = Pp.lambda <> brackets (dumpClo clo x)
-    dump Zero = "zero"
-    dump (Suc v) = "suc" <+> parens (dump v)
-    dump (Cut neu tp) = brackets (dump neu <+> colon <+> dump tp)
-    dump (Rel tp small) = "rel" <+> parens (dump tp) <+> parens (dump small)
-    dump NatSmall = "nat-small"
-    dump (PiSmall base fam) = "pi-small" <+> parens (dump base) <+> parens (dump fam)
+    dump prec  (Lam x clo) = Pp.lambda <> brackets (dumpClo clo x)
+    dump _     Zero = "zero"
+    dump _    (Suc v) = "suc" <+> dump AppPrec v
+    dump prec (Cut neu tp) = parensIf (prec >= AnnPrec) (dump AnnPrec neu <+> colon <+> dump AnnPrec tp)
+    dump prec (Rel tp small) = parensIf (prec >= AppPrec) $ "rel" <+> dump AppPrec tp <+> dump AppPrec small
+    dump _ NatSmall = "nat-small"
+    dump prec (PiSmall base fam) = parensIf (prec >= AppPrec) $ "pi-small" <+> dump AppPrec base <+> dump AppPrec fam
 
 instance Debug Type where
-    dump (Univ i) = "Type" <+> pretty i
-    dump Nat = Pp.nat
-    dump (Pi x base tpclo) = Pp.forall <+> parens (dump base) <+> brackets (dumpClo tpclo x)
-    dump (El tp val) = "El" <+> parens (dump tp) <+> (dump val)
-    dump (ElCut tp neu) = brackets (dump neu <+> colon <+> dump tp)
-    dump (Small a univ) = "Small" <+> parens (dump a) <+> parens (dump univ)
+    dump prec (Univ i) = parensIf (prec >= AppPrec) $ "Type" <+> pretty i
+    dump _    Nat = Pp.nat
+    dump prec (Pi x base tpclo) = parensIf (prec >= AppPrec) $ Pp.forall <+> dump AppPrec base <+> brackets (dumpClo tpclo x)
+    dump prec (El tp val) = parensIf (prec >= AppPrec) $ "El" <+> dump AppPrec tp <+> dump AppPrec val
+    dump prec (ElCut tp neu) = brackets (dump AnnPrec neu <+> colon <+> dump AnnPrec tp)
+    dump prec (Small a univ) = parensIf (prec >= AppPrec) $ "Small" <+> dump AppPrec a <+> dump AppPrec univ
 
 instance Debug Neutral where
-    dump (Neutral hd sp) = dump hd <+> slash <+> hsep (fmap (parens . dump) sp)
+    dump prec (Neutral hd sp) = dump AnnPrec hd <+> slash <+> hsep (fmap (parens . dump AnnPrec) sp)
 
 instance Debug Head where
-    dump (Local lvl) = dump lvl
-    dump (Global lvl _) = dump lvl
-    dump (Hole nm) = "?" <> dump nm
+    dump _ (Local lvl) = pretty lvl
+    dump _ (Global lvl _) = pretty lvl
+    dump _ (Hole nm) = "?" <> pretty nm
 
 instance Debug Frame where
-    dump (App tp v) = parens (dump v <+> colon <+> dump tp)
+    dump prec (App tp v) = parensIf (prec >= AnnPrec) $ dump AnnPrec v <+> colon <+> dump AnnPrec tp
 
 instance (Debug a) => Debug (Clo a) where
-    dump (Clo env a) = dump env <+> brackets "x" <+> Pp.turnstile <+> dump a
+    dump prec (Clo env a) = dump NoPrec env <+> brackets "_" <+> Pp.turnstile <+> dump NoPrec a
 
 dumpClo :: (Debug a) => Clo a -> Ident -> Doc ann
-dumpClo (Clo env a) x = dump env <+> brackets (dump x) <+> Pp.turnstile <+> dump a
+dumpClo (Clo env a) x = dump NoPrec env <+> brackets (dump NoPrec x) <+> Pp.turnstile <+> dump NoPrec a
