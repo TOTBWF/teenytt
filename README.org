@@ -1,0 +1,10 @@
+* TeenyTT
+Teenytt is a very small, didactic proof assistant designed around
+dependent type theory.
+* Development
+Currently, the best Haskell development tool is [[https://github.com/haskell/haskell-language-server][HLS]], which ought to
+work with most major editors.
+
+Note that we use [[https://downloads.haskell.org/ghc/latest/docs/html/users_guide/exts/strict.html?highlight=strict#strict-by-default-data-types][-XStrictData]] by default. This is done to highlight
+the key uses of lazyness, while avoiding needless clutter imposed
+strictness annotations everywhere.

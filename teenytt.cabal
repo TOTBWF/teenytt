@@ -1,0 +1,94 @@
+cabal-version:      3.4
+name:               teenytt
+version:            0.1.0.0
+
+synopsis: A small, didactic proof assistant
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+author:             Reed Mullanix
+maintainer:         reedmullanix@gmail.com
+
+-- A copyright notice.
+copyright: 2022 Reed Mullanix
+-- copyright:
+-- category:
+extra-source-files:
+  README.org
+  CHANGELOG.org
+
+library
+    exposed-modules:
+        TeenyTT.Base.ByteString
+        TeenyTT.Base.Location
+        TeenyTT.Elaborator.ConcreteSyntax
+    hs-source-dirs: src
+    ghc-options:
+        -- Note that -Wall doesn't enable /all/ warnings
+        -- See https://ghc.gitlab.haskell.org/ghc/doc/users_guide/using-warnings.html
+        -- for a list of all warnings and their descriptions.
+        -Wall
+        -Wno-unused-top-binds
+        -Wno-unused-matches
+        -- In general, it's good practice to specify /how/ we are deriving something.
+        -Wmissing-deriving-strategies
+        -Wunticked-promoted-constructors
+        -Wmissing-export-lists
+        -Wall-missed-specialisations
+        -Werror
+    default-extensions:
+        -- Syntactic Extensions
+        BlockArguments
+        ImportQualifiedPost
+        LambdaCase
+        OverloadedStrings
+        -- Deriving Extensions
+        -- Note that we use -Wmissing-deriving-strategies, so any deriving clause
+        -- must have a strategy attached.
+        DeriveAnyClass
+        DeriveFoldable
+        DeriveFunctor
+        DeriveTraversable
+        DeriveGeneric
+        DerivingStrategies
+        DerivingVia
+        GeneralizedNewtypeDeriving
+        StandaloneDeriving
+        -- Record Extensions
+        DuplicateRecordFields
+        NoFieldSelectors
+        NamedFieldPuns
+        OverloadedRecordDot
+        RecordWildCards
+        -- Pattern Extensions
+        ViewPatterns
+        -- Typeclass Extensions
+        FlexibleContexts
+        FlexibleInstances
+        -- Strictness Extensions
+        StrictData
+    build-depends:
+         base >=4.16 && <5
+       , bytestring >= 0.11
+       -- We want to use the UTF-8 encoding
+       , text >= 2.0
+       , utf8-string
+    default-language: Haskell2010
+
+executable teenytt
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:    base >=4.16 && <5
+    hs-source-dirs:   app
+    default-language: Haskell2010

@@ -1,0 +1,7 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:teenytt"
+
+    - path: "app/Main.hs"
+      component: "teenytt:exe:teenytt"
