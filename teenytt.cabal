@@ -26,13 +26,16 @@ extra-source-files:
 library
     exposed-modules:
         TeenyTT.Base.ByteString
+        TeenyTT.Base.Ident
         TeenyTT.Base.Location
+        TeenyTT.Base.SymbolTable
         TeenyTT.Elaborator.ConcreteSyntax
     hs-source-dirs: src
     ghc-options:
         -- Note that -Wall doesn't enable /all/ warnings
         -- See https://ghc.gitlab.haskell.org/ghc/doc/users_guide/using-warnings.html
         -- for a list of all warnings and their descriptions.
+        -fno-show-valid-hole-fits
         -Wall
         -Wno-unused-top-binds
         -Wno-unused-matches
@@ -41,7 +44,6 @@ library
         -Wunticked-promoted-constructors
         -Wmissing-export-lists
         -Wall-missed-specialisations
-        -Werror
     default-extensions:
         -- Syntactic Extensions
         BlockArguments
@@ -68,14 +70,18 @@ library
         RecordWildCards
         -- Pattern Extensions
         ViewPatterns
+        -- Strictness Extensions
+        StrictData
         -- Typeclass Extensions
         FlexibleContexts
         FlexibleInstances
-        -- Strictness Extensions
-        StrictData
+        -- Typesystem Extensions
+        ScopedTypeVariables
     build-depends:
          base >=4.16 && <5
        , bytestring >= 0.11
+       , primitive >= 0.7
+       , hashable >= 1.4
        -- We want to use the UTF-8 encoding
        , text >= 2.0
        , utf8-string
@@ -92,3 +98,52 @@ executable teenytt
     build-depends:    base >=4.16 && <5
     hs-source-dirs:   app
     default-language: Haskell2010
+
+test-suite teenytt-test
+    type: exitcode-stdio-1.0
+    main-is: Spec.hs
+    hs-source-dirs:
+        test
+    other-modules:
+        Spec.TeenyTT.Base.SymbolTable
+    default-extensions:
+        -- Syntactic Extensions
+        BlockArguments
+        ImportQualifiedPost
+        LambdaCase
+        OverloadedStrings
+        -- Deriving Extensions
+        -- Note that we use -Wmissing-deriving-strategies, so any deriving clause
+        -- must have a strategy attached.
+        DeriveAnyClass
+        DeriveFoldable
+        DeriveFunctor
+        DeriveTraversable
+        DeriveGeneric
+        DerivingStrategies
+        DerivingVia
+        GeneralizedNewtypeDeriving
+        StandaloneDeriving
+        -- Record Extensions
+        DuplicateRecordFields
+        NoFieldSelectors
+        NamedFieldPuns
+        OverloadedRecordDot
+        RecordWildCards
+        -- Pattern Extensions
+        ViewPatterns
+        -- Strictness Extensions
+        StrictData
+        -- Typeclass Extensions
+        FlexibleContexts
+        FlexibleInstances
+        -- Typesystem Extensions
+        ScopedTypeVariables
+    build-depends:
+         base >=4.16 && <5
+       , hashable >= 1.4
+       , hspec >= 2.10
+       , hedgehog >= 1.1.1
+       , hspec-hedgehog >= 0.0.1.2
+       , primitive >= 0.7
+       , teenytt
