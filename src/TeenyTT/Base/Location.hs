@@ -18,6 +18,7 @@ module TeenyTT.Base.Location
   -- * Conversions
   , startPos
   , stopPos
+  , spanning
   -- * Slicing
   , slice
   ) where
@@ -143,6 +144,17 @@ stopPos sp =
         , lineNum = sp.stopLine
         , filename = sp.filename
         }
+
+spanning :: Pos -> Pos -> Span
+spanning start stop =
+    Span { start = start.pos
+         , startBol = start.bol
+         , startLine = start.lineNum
+         , stop = stop.pos
+         , stopBol = stop.bol
+         , stopLine = stop.lineNum
+         , filename = start.filename
+         }
 
 --------------------------------------------------------------------------------
 -- Slicing

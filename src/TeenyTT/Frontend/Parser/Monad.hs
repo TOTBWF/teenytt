@@ -242,7 +242,9 @@ getInput = gets \s -> s.input
 {-# INLINE advance #-}
 advance :: AlexInput -> Parser ()
 advance input =
-    modify' \s -> s { input = input }
+    modify' \s -> s { input = input
+                    , span = Loc.spanning (Loc.stopPos s.span) input.pos
+                    }
 
 {-# INLINE slice #-}
 slice :: Int -> AlexInput -> ByteString
