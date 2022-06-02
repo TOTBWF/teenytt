@@ -74,9 +74,9 @@ renderSnippet buffer snippet =
         source = pretty $ decodeUtf8 $ sourceBytes
         underline = pretty $ replicate snippet.location.width '^'
         fringeWidth = snippet.location.startLine `div` 10 + 2
-    -- [FIXME: Reed M, 02/06/2022] For some reason the error message are jacked up for parse errors.
-    in vcat [
-              indent fringeWidth ">" <+> snippet.message
+        location = pretty snippet.location.filename <> ":" <> pretty snippet.location.startLine <> ":" <> pretty snippet.location.startCol
+    -- [FIXME: Reed M, 02/06/2022] For some reason the error locations are jacked up for parse errors.
+    in vcat [ location <+> snippet.message
             , indent fringeWidth "│"
             , pretty snippet.location.startLine <+> "│" <+> source
             , indent fringeWidth "│" <+> indent snippet.location.startCol underline
