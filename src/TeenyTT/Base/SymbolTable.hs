@@ -30,7 +30,6 @@ import Data.Hashable
 import Data.Primitive.Array
 import Data.Primitive.PrimArray
 import Data.Primitive.MutVar
-import Data.Primitive.MVar
 import Data.Primitive.Types
 
 --------------------------------------------------------------------------------
@@ -137,17 +136,15 @@ findHashIndex :: forall m k a. (PrimMonad m, Eq k) => k -> Int -> SymbolTable (P
 findHashIndex k khash tbl = do
     capacity <- readMutVar tbl.capacity
     let mask = capacity - 1
-    go ((abs khash) .&. (mask - 1)) khash mask
-    where
-      go :: Int -> Int -> Int -> m Index
-      go i perturb mask = do
+    let go :: Int -> Int -> m Index
+        go i perturb = do
           -- Use a Linear Congruential Generator to probe the hash table
           -- upon a hash collision. To increase the randomness of the probe,
           -- we mix in a decaying number of bits from the key's hash into
           -- the PRNG. This is why we have the invariant that the size must
           -- be a power of two: this specific LCG will visit every single entry
           -- in the index array.
-          let loop = go (5 * i + perturb + 1) (shiftR perturb 5) mask
+          let loop = go (5 * i + perturb + 1) (shiftR perturb 5)
           let hashIndex = i .&. mask
 
           entryIndex <- readDynamicPrimArray tbl.indicies hashIndex
@@ -163,6 +160,7 @@ findHashIndex k khash tbl = do
                 loop
             else
               loop
+    go (abs khash .&. mask) khash
 
 resize :: (PrimMonad m, Eq k) => SymbolTable (PrimState m) k a -> m ()
 resize tbl = do
@@ -181,6 +179,7 @@ resize tbl = do
     writeMutVar tbl.capacity newCapacity
 
     -- Recompute all of the hash indicies.
+    -- FIXME: Using 'for_' here is probably bad.
     for_ [0..used - 1] $ \i -> do
         ihash <- readDynamicPrimArray tbl.hashes i
         ikey <- readDynamicArray tbl.keys i
@@ -203,7 +202,6 @@ new n = do
     used <- newMutVar 0
     capacity <- newMutVar size
 
-    lock <- newMVar ()
     pure $ SymbolTable {..}
 
 push :: (PrimMonad m, Hashable k, Eq k) => k -> a -> SymbolTable (PrimState m) k a -> m ()
