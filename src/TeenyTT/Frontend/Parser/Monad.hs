@@ -6,8 +6,9 @@ module TeenyTT.Frontend.Parser.Monad
     Parser
   , runParser
   -- * Parse Errors
-  , ParseError(..)
-  , parseError
+  , emptyTokenStream
+  , unexpectedToken
+  , invalidLexeme
   -- * Start Codes
   , startCode
   , pushStartCode
@@ -52,6 +53,8 @@ import Data.Word (Word8)
 import TeenyTT.Base.ByteString (ByteString)
 import TeenyTT.Base.Location (Pos(..), Span(..), Loc(..))
 import TeenyTT.Base.Location qualified as Loc
+import TeenyTT.Base.Diagnostic
+import TeenyTT.Base.Pretty
 
 import TeenyTT.Frontend.Parser.Token
 
@@ -76,23 +79,34 @@ initState path codes buffer =
                 , span = Loc.spanStart path
                 }
 
-runParser :: (NFData a) => FilePath -> [Int] -> ByteString -> Parser a -> IO (Either ParseError a)
+runParser :: (NFData a) => FilePath -> [Int] -> ByteString -> Parser a -> IO a
 runParser path codes buffer (Parser m) =
-    try $ evaluate $ force $ evalState m (initState path codes buffer)
+    evaluate $ force $ evalState m (initState path codes buffer)
 
 --------------------------------------------------------------------------------
 -- Errors
 
-data ParseError
-    = EmptyTokenStream
-    | UnexpectedToken Token
-    | InvalidLexeme Pos
-    deriving stock Show
-    deriving anyclass Exception
+emptyTokenStream :: Parser a
+emptyTokenStream =
+    throw $ Diagnostic { severity = Panic
+                       , code = Impossible "Lexer didn't produce an EOF token!"
+                       , snippets = []
+                       }
 
-parseError :: ParseError -> Parser a
-parseError err = throw err
-    
+unexpectedToken :: Token -> Parser a
+unexpectedToken tok =
+    throw $ Diagnostic { severity = Error
+                       , code = ParseError
+                       , snippets = [Snippet { location = Loc.locate tok, message = "Unexpected Token:" <+> "'" <> pretty tok <> "'" }]
+                       }
+
+invalidLexeme :: Pos -> Parser a
+invalidLexeme pos =
+    throw $ Diagnostic { severity = Error
+                       , code = LexError
+                       , snippets = [Snippet { location = Loc.spanning pos pos, message = "Invalid lexeme" }]
+                       }
+
 --------------------------------------------------------------------------------
 -- [NOTE: Start Codes]
 --
@@ -263,7 +277,7 @@ emitNumLiteral bs = do
     sp <- location
     case ASCII_BS.readInteger bs of
       Just (n, _) -> pure $ TokLiteral (NumLit (Loc sp n))
-      Nothing -> parseError $ InvalidLexeme (Loc.startPos sp)
+      Nothing -> invalidLexeme $ Loc.startPos sp
 
 {-# INLINE emitSymbol #-}
 emitSymbol :: Symbol -> ByteString -> Parser Token

@@ -146,6 +146,6 @@ applications xs = case NE.reverse xs of
 -- Error Handling
 
 failure :: [T.Token] -> Parser a
-failure [] = parseError $ EmptyTokenStream
-failure (tok : _) = parseError $ UnexpectedToken tok
+failure [] = emptyTokenStream
+failure (tok : _) = unexpectedToken tok
 }

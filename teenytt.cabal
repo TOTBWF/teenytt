@@ -27,9 +27,11 @@ library
     exposed-modules:
         -- Base
         TeenyTT.Base.ByteString
+        TeenyTT.Base.Diagnostic
         TeenyTT.Base.Env
         TeenyTT.Base.Ident
         TeenyTT.Base.Location
+        TeenyTT.Base.Pretty
         TeenyTT.Base.SymbolTable
         -- Elaborator
         TeenyTT.Elaborator.ConcreteSyntax
@@ -99,6 +101,7 @@ library
        , primitive >= 0.7
        , hashable >= 1.4
        , mtl >= 2.3
+       , prettyprinter >= 1.7
        -- We want to use the UTF-8 encoding
        , text >= 2.0
        , transformers >= 0.6

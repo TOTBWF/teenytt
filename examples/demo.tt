@@ -1,21 +1,2 @@
--- You can press 'C-c C-l' in emacs to load this file,
--- provided you have the emacs mode installed.
-
--- The identity function
 id : ∀ (x : Type) (a : x) → x
 id = λ _ a → a
-
--- -- Enables printing of debug messages.
--- -- You can optionally provide the '--debug' flag
--- -- to the 'teenytt' executable.
--- #debug on
-
-const : ∀ (A : Type) (B : Type) → A → B → A
-const = λ _ _ a _ → a
-
-test : Type → Type → Type
-test = λ A B → A × B
-
--- #debug off
-
--- #print const

@@ -21,7 +21,7 @@ module TeenyTT.Base.Location
   , stopPos
   , spanning
   -- * Slicing
-  , slice
+  , sliceLine
   ) where
 
 import GHC.Generics
@@ -33,7 +33,8 @@ import Data.List (foldl')
 import Data.List.NonEmpty (NonEmpty(..))
 
 import TeenyTT.Base.ByteString (ByteString)
-import TeenyTT.Base.ByteString qualified as BS
+import TeenyTT.Base.Pretty
+import qualified TeenyTT.Base.ByteString as BS
 
 
 --------------------------------------------------------------------------------
@@ -104,6 +105,10 @@ instance HasField "startCol" Span Int where
 instance HasField "stopCol" Span Int where
     getField sp = sp.stop - sp.stopBol
 
+-- | The width of a span.
+instance HasField "width" Span Int where
+    getField sp = sp.stop - sp.start
+
 instance Semigroup Span where
     sp0 <> sp1 =
         Span { start = min sp0.start sp1.start
@@ -126,6 +131,9 @@ spanStart path = Span 0 0 1 0 0 1 path
 data Loc a = Loc Span a
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
+
+instance Pretty a => Pretty (Loc a) where
+    pretty (Loc _ a) = pretty a
 
 -- | Drop the span from some located data.
 unlocate :: Loc a -> a
@@ -177,7 +185,6 @@ spanning start stop =
 --------------------------------------------------------------------------------
 -- Slicing
 
--- | Extract a span out of a 'ByteString'.
-slice :: Span -> ByteString -> ByteString
-slice sp bs = BS.slice sp.start sp.stop bs
+sliceLine :: Span -> ByteString -> ByteString
+sliceLine sp bs = BS.sliceLine sp.startBol bs
 

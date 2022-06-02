@@ -11,7 +11,7 @@ module TeenyTT.Base.SymbolTable
   , pop
   , lookup
   , indexOf
-  , nth
+  , index
   ) where
 
 
@@ -279,8 +279,17 @@ indexOf key tbl =
     Index {entryIndex} ->
         Just entryIndex
 
-nth :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m (k, a)
-nth ix tbl = do
-    key <- readDynamicArray tbl.keys ix
-    value <- readDynamicArray tbl.values ix
+index :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m (k, a)
+index ix tbl = do
+    used <- readMutVar tbl.used
+    -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
+    key <- readDynamicArray tbl.keys (used - ix - 1)
+    value <- readDynamicArray tbl.values (used - ix - 1)
+    pure (key, value)
+
+level :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m (k, a)
+level lvl tbl = do
+    -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
+    key <- readDynamicArray tbl.keys lvl
+    value <- readDynamicArray tbl.values lvl
     pure (key, value)

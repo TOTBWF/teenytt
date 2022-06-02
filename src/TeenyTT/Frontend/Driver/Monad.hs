@@ -4,16 +4,24 @@ module TeenyTT.Frontend.Driver.Monad
   , runDriver
   -- * State
   , sandbox
-  -- * Errors
-  , hoistError
   -- * Debugging
   , setDebugMode
   , getDebugMode
   ) where
 
+import Control.Exception
 import Control.Monad.Reader
 
+import Data.ByteString (ByteString)
+
 import Data.IORef
+
+import Prettyprinter.Render.Text
+
+import System.Exit
+
+import TeenyTT.Base.Diagnostic (Diagnostic(..))
+import TeenyTT.Base.Diagnostic qualified as Diagnostic
 
 --------------------------------------------------------------------------------
 -- [NOTE: Exception Safety + Global State]
@@ -29,10 +37,15 @@ newtype Driver a = Driver { unDriver :: ReaderT (IORef DriverState) IO a }
     deriving newtype (Functor, Applicative, Monad, MonadReader (IORef DriverState), MonadIO)
 
 
-runDriver :: Driver a -> IO a
-runDriver (Driver m) = do
+runDriver :: ByteString -> Driver a -> IO a
+runDriver buffer (Driver m) = do
     ref <- newIORef initState
-    runReaderT m ref
+    catch (runReaderT m ref) handler
+    where
+      handler :: Diagnostic -> IO a
+      handler diag = do
+          putDoc (Diagnostic.render buffer diag)
+          exitWith (ExitFailure 1)
 
 --------------------------------------------------------------------------------
 -- Driver State
@@ -69,15 +82,6 @@ sandbox (Driver m) = do
     st <- get
     ref <- liftIO $ newIORef st
     pure $ \_ -> runReaderT m ref
-
---------------------------------------------------------------------------------
--- Errors
-
--- [FIXME: Reed M, 01/06/2022] This should use pretty-printing!
-{-# INLINE hoistError #-}
-hoistError :: (Show e) => Either e a -> Driver a
-hoistError (Left err) = liftIO $ fail $ show err
-hoistError (Right a) = pure a
 
 --------------------------------------------------------------------------------
 -- Debugging

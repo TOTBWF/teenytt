@@ -12,11 +12,14 @@ import TeenyTT.Frontend.Parser.Token
 $digit = 0-9
 $alpha = [a-zA-Z]
 $alphanum = [a-zA-Z09]
+$subscripts = [₀-₉] 
+$ident_start = $printable # $subscripts # $digit # $white # [\( \)]
+$ident_rest  = $printable # $subscripts # $white # [\( \)]
 
 --------------------------------------------------------------------------------
 -- Macros
 @natural   = $digit+
-@ident     = $alpha [$alpha $digit \_ \-]*
+@ident     = $ident_start [$ident_rest]*
 @directive = \# @ident
 
 tokens :-
@@ -34,7 +37,7 @@ tokens :-
 <0> _                             { emitSymbol Underscore }
 <0> (→|\->)                       { emitSymbol Arrow }
 <0> (∀|forall)                    { emitSymbol ForAll }
-<0> (×|\*)                         { emitSymbol Times }
+<0> (×|\*)                        { emitSymbol Times }
 <0> \(                            { emitSymbol LParen }
 <0> \)                            { emitSymbol RParen }
 <0> \{\!                          { emitSymbol LBang }
@@ -153,7 +156,7 @@ scan = do
     code <- startCode
     case alexScan input code of
       AlexEOF -> handleEOF
-      AlexError rest -> parseError $ InvalidLexeme rest.pos
+      AlexError rest -> invalidLexeme rest.pos
       AlexSkip rest len -> do
         advance rest
         scan

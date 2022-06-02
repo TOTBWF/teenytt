@@ -10,25 +10,32 @@ import Control.Monad.IO.Class
 
 import Data.ByteString qualified as BS
 
-import TeenyTT.Frontend.Parser qualified as P
-
+import TeenyTT.Base.Pretty
+import Prettyprinter.Render.Text
 import TeenyTT.Frontend.Driver.Monad
 
-unimplemented :: String -> Driver ()
+import TeenyTT.Frontend.Parser qualified as P
+
+unimplemented :: String -> IO ()
 unimplemented msg = liftIO $ putStrLn $ "Unimplemented: " <> msg
 
-loadFile :: FilePath -> Driver ()
+loadFile :: FilePath -> IO ()
 loadFile path = unimplemented "File loading"
 
-lexFile :: FilePath -> Driver ()
+lexFile :: FilePath -> IO ()
 lexFile path = do
-    bytes <- liftIO $ BS.readFile path
-    toks <- hoistError =<< (liftIO $ P.tokenize path bytes)
-    liftIO $ print toks  
+    bytes <- BS.readFile path
+    runDriver bytes $ do
+        toks <- P.tokenize path bytes
+        liftIO $ putDoc $ vcat $ fmap pretty toks
 
-parseFile :: FilePath -> Driver ()
+parseFile :: FilePath -> IO ()
 parseFile path = do
-    bytes <- liftIO $ BS.readFile path
-    cmds <- hoistError =<< (liftIO $ P.commands path bytes)
-    liftIO $ print cmds
+    bytes <- BS.readFile path
+    runDriver bytes $ do
+        toks <- P.tokenize path bytes
+        liftIO $ putDoc $ vcat $ fmap pretty toks
+        liftIO $ putStrLn $ '\n' : replicate 80 '-' 
+        cmds <- liftIO $ P.commands path bytes
+        liftIO $ print cmds
 

@@ -16,6 +16,7 @@ import Data.Text (Text)
 
 import TeenyTT.Base.Ident
 import TeenyTT.Base.Location
+import TeenyTT.Base.Pretty
 
 type Term = Loc Term_
 data Term_
@@ -57,3 +58,6 @@ data Pattern
     | Inductive { value :: Ident, inductive :: Ident }
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
+
+--------------------------------------------------------------------------------
+-- Pretty-Printing

@@ -61,6 +61,7 @@ index :: (PrimMonad m) => Int -> MutableEnv (PrimState m) a -> m a
 index ix env = do
     used <- readMutVar env.used
     items <- readMutVar env.items
+    -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
     if (ix < 0 || ix >= used) then
       error "index: out of bounds index"
     else
@@ -71,6 +72,7 @@ level :: (PrimMonad m) => Int -> MutableEnv (PrimState m) a -> m a
 level lvl env = do
     used <- readMutVar env.capacity
     items <- readMutVar env.items
+    -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
     if (lvl < 0 || lvl >= used) then
       error "level: out of bounds level"
     else
