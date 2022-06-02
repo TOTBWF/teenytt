@@ -36,6 +36,7 @@ data Symbol
     | Lambda
     | Equal
     | ForAll
+    | Times
     | LParen
     | RParen
     | LBang
@@ -53,5 +54,7 @@ data Keyword
     = Type
     | Nat
     | Suc
+    | Fst
+    | Snd
     deriving stock (Show, Generic)
     deriving anyclass (NFData)

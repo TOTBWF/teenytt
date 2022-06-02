@@ -15,6 +15,7 @@ module TeenyTT.Base.Location
   , Loc(..)
   , unlocate
   , Located(..)
+  , locations
   -- * Conversions
   , startPos
   , stopPos
@@ -27,6 +28,9 @@ import GHC.Generics
 import GHC.Records (HasField(..))
 
 import Control.DeepSeq
+
+import Data.List (foldl')
+import Data.List.NonEmpty (NonEmpty(..))
 
 import TeenyTT.Base.ByteString (ByteString)
 import TeenyTT.Base.ByteString qualified as BS
@@ -100,6 +104,17 @@ instance HasField "startCol" Span Int where
 instance HasField "stopCol" Span Int where
     getField sp = sp.stop - sp.stopBol
 
+instance Semigroup Span where
+    sp0 <> sp1 =
+        Span { start = min sp0.start sp1.start
+             , startBol = min sp0.startBol sp1.startBol
+             , startLine = min sp0.startLine sp1.startLine
+             , stop = max sp0.stop sp1.stop
+             , stopBol = max sp0.stopBol sp1.stopBol
+             , stopLine = max sp0.stopLine sp1.stopLine
+             , filename = sp0.filename
+             }
+
 -- | The empty span at the start of a file
 spanStart :: FilePath -> Span
 spanStart path = Span 0 0 0 0 0 0 path
@@ -123,6 +138,9 @@ class Located a where
 
 instance Located (Loc a) where
     locate (Loc sp _) = sp
+
+locations :: (Located a) => NonEmpty a -> Span
+locations (x :| xs) = foldl' (\sp a -> sp <> locate a) (locate x) xs
 
 --------------------------------------------------------------------------------
 -- Conversions

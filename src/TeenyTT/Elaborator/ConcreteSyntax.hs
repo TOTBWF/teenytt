@@ -11,6 +11,7 @@ import GHC.Generics
 
 import Control.DeepSeq
 
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
 
 import TeenyTT.Base.Ident
@@ -20,11 +21,12 @@ type Term = Loc Term_
 data Term_
     = Var Text
     | Let Term Ident Term
-    | Ann { term :: Term, tp :: Term }
-    | Hole { name :: Maybe Text, term :: Term }
+    | Ann Term Term
+    | Hole
+    | Incomplete Term
 
     | Pi [Cell] Term
-    | Lam [Ident] Term
+    | Lam (NonEmpty Ident) Term
     | Ap Term [Term]
 
     | Sigma [Cell] Term
@@ -34,15 +36,15 @@ data Term_
     | Univ
 
     | Nat
-    | Lit Int
+    | Lit Integer
     | Suc Term
 
-    | Elim { mot :: Term, cases :: [Case], scrut :: Term }
+    | Elim Term [Case] Term
     | LamElim [Case]
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
 
-data Cell = Cell { names :: [Ident], tp :: Loc Term }
+data Cell = Cell { names :: NonEmpty Ident, tp :: Term }
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
 
