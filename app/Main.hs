@@ -11,6 +11,7 @@ import TeenyTT.Frontend.Driver qualified as TeenyTT
 data Command
     = LoadFile FilePath
     | LexFile FilePath
+    | ParseFile FilePath
 
 --------------------------------------------------------------------------------
 -- File Loading
@@ -31,10 +32,19 @@ lexFileCmd :: Mod CommandFields Command
 lexFileCmd = command "lex" (info lexFileOpts (progDesc "Lex a file with teenytt"))
 
 --------------------------------------------------------------------------------
+-- Parsing 
+
+parseFileOpts :: Parser Command
+parseFileOpts = ParseFile <$> argument str (metavar "FILE" <> action "file")
+
+parseFileCmd :: Mod CommandFields Command
+parseFileCmd = command "parse" (info parseFileOpts (progDesc "Parse a file with teenytt"))
+
+--------------------------------------------------------------------------------
 -- Main
 
 cmds :: ParserInfo Command
-cmds = info (subparser (loadFileCmd <> lexFileCmd) <**> helper) (progDesc "TeenyTT -- A Teeny Type Theory")
+cmds = info (subparser (loadFileCmd <> lexFileCmd <> parseFileCmd) <**> helper) (progDesc "TeenyTT -- A Teeny Type Theory")
 
 main :: IO ()
 main = do
@@ -42,3 +52,4 @@ main = do
     case cmd of 
       LoadFile path -> TeenyTT.runDriver $ TeenyTT.loadFile path
       LexFile path -> TeenyTT.runDriver $ TeenyTT.lexFile path
+      ParseFile path -> TeenyTT.runDriver $ TeenyTT.parseFile path

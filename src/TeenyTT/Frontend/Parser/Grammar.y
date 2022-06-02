@@ -43,6 +43,7 @@ import TeenyTT.Elaborator.ConcreteSyntax
   snd       { T.TokKeyword (Loc $$ T.Snd) }
   '->'      { T.TokSymbol (Loc $$ T.Arrow) }
   forall    { T.TokSymbol (Loc $$ T.ForAll) }
+  '*'       { T.TokSymbol (Loc $$ T.Times) }
   lambda    { T.TokSymbol (Loc $$ T.Lambda) }
   '('       { T.TokSymbol (Loc $$ T.LParen) }
   ')'       { T.TokSymbol (Loc $$ T.RParen) }
@@ -58,6 +59,7 @@ import TeenyTT.Elaborator.ConcreteSyntax
   block_close  { T.TokSymbol (Loc $$ T.BlockClose) }
 
 %right '->'
+%right '*'
 
 %%
 
@@ -65,26 +67,38 @@ import TeenyTT.Elaborator.ConcreteSyntax
 -- Top Level
 
 toplevel :: { [Command] }
-toplevel : {- empty -} {[]}
+toplevel : block_open cmds block_close { $2 }
+
+cmds :: { [Command] }
+cmds : cmd block_break       { [$1] }
+     | cmd block_break cmds  { $1 : $3 }
+
+cmd :: { Command }
+cmd : plain_ident ':' term  { Annotate $1 $3 }
+    | plain_ident '=' term  { Define $1 $3 }
 
 --------------------------------------------------------------------------------
 -- Terms
 
 term :: { Term }
-term : app { applications $1 }
+term : app       { applications $1 }
+     | operator  { $1 }
 
 app :: { NonEmpty Term }
 app : atom app { $1 <| $2 }
     | atom     { $1 :| [] }
 
-operators :: { Term }
-operators : forall tele_cells '->' term       { Loc ($1 <> locate $4) (Pi $2 $4) }
-          | lambda plain_idents '->' term     { Loc ($1 <> locate $4) (Lam $2 $4) }
+operator :: { Term }
+operator : forall tele_cells '->' term       { Loc ($1 <> locate $4) (Pi $2 $4) }
+         | term '->' term                    { Loc (locate $1 <> locate $3) (Pi [anon $1] $3) }
+         | term '*' term                     { Loc (locate $1 <> locate $3) (Sigma [anon $1] $3) }
+         | lambda plain_idents '->' term     { Loc ($1 <> locate $4) (Lam $2 $4) }
 
 atom :: { Term }
 atom : '(' term ')'    { $2 }
      | '?'             { Loc $1 Hole }
      | '{!' term '!}'  { Loc ($1 <> $3) (Incomplete $2) }
+     | name            { Loc (locate $1) (Var (unlocate $1)) }
      | literal         { literal $1 }
      | nat             { Loc $1 Nat }
      | suc atom        { Loc ($1 <> locate $2) (Suc $2) }
@@ -117,6 +131,8 @@ plain_idents : plain_ident plain_idents { $1 <| $2 }
              | plain_ident              { $1 :| [] }
 
 {
+anon :: Term -> Cell
+anon tm = Cell (Anon :| []) tm
 
 literal :: T.Literal -> Term
 literal (T.NumLit (Loc sp n)) = (Loc sp (Lit n))

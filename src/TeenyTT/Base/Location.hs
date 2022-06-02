@@ -59,7 +59,7 @@ instance HasField "col" Pos Int where
 -- | The position at the start of a file.
 posStart :: FilePath -> Pos
 posStart path =
-    Pos 0 0 0 path
+    Pos 0 0 1 path
 
 -- | Advance a position to the next grapheme.
 nextCol :: Pos -> Pos
@@ -117,7 +117,7 @@ instance Semigroup Span where
 
 -- | The empty span at the start of a file
 spanStart :: FilePath -> Span
-spanStart path = Span 0 0 0 0 0 0 path
+spanStart path = Span 0 0 1 0 0 1 path
 
 --------------------------------------------------------------------------------
 -- Locations
