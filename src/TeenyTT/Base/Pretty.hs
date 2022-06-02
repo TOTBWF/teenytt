@@ -1,3 +1,7 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 -- | Pretty-Printing Machinery
 module TeenyTT.Base.Pretty
   (
@@ -8,16 +12,19 @@ module TeenyTT.Base.Pretty
   , right
   , prefix
   , postfix
-  -- * Debug Output
-  , Debug(..)
+  -- * Display
+  , Display(..)
   -- * Re-Exports
   , module PP
   ) where
+
+import GHC.TypeLits
 
 import Data.Functor
 import Control.Monad.Primitive
 
 import Data.Char (chr)
+import Data.Kind
 import Data.Text
 import Prettyprinter as PP
 
@@ -91,37 +98,11 @@ data DisplayEnv s ann =
 class Display a where
     display :: (PrimMonad m) => DisplayEnv (PrimState m) ann -> a -> m (Doc ann)
 
--- bindVar :: forall m ann a. (PrimMonad m) => Ident -> DisplayEnv (PrimState m) ann -> (Doc ann -> m a) -> m a
--- bindVar ident env k = do
---     _
---     where
---       mangle :: Text -> m (Text, Int)
---       mangle = _
--- --     (mangled, n) <- Tbl.lookup ident env.vars <&> \case
--- --         Just (_, n) -> (subscript n (pretty ident), n + 1)
--- --         Nothing -> (pretty ident, 1)
--- --     Tbl.push ident (mangled, n) env.vars
--- --     a <- k mangled
--- --     Tbl.pop_ env.vars
--- --     pure a
---       subscript :: Int -> Text -> Text
---       subscript 0 doc = doc
---       subscript n doc =
---           -- The unicode subscript characters ₀...₉ occupy codepoints 8320...8329
---           let (d, r) = n `divMod` 10 in
---           subscript d doc <> (pretty $ chr $ 8320 + r)
+type family CannotDisplayIdentifiers :: Constraint where
+  CannotDisplayIdentifiers = TypeError
+    ( 'Text "🚫 You should not try to display identifiers!" ':$$:
+      'Text "💡 Use 'bindVar' to bind the identifier in the display environment instead."
+    )
 
--- index :: (PrimMonad m) => Int -> DisplayEnv (PrimState m) ann -> m (Doc ann)
--- index ix env =
---     _ <$> Tbl.index ix env.vars
-
---------------------------------------------------------------------------------
--- Debug
-
--- | Ugly-printed output, used for dumping core terms when we may
--- not have a way of generating good names.
-class Debug a where
-    dump :: a -> Doc ann
-
---------------------------------------------------------------------------------
--- Deriving-Via Helpers
+instance CannotDisplayIdentifiers => Display Ident where
+    display = undefined
