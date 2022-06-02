@@ -1,6 +1,10 @@
 -- | The Concrete Syntax Tree for TeenyTT.
 module TeenyTT.Elaborator.ConcreteSyntax
-  (
+  ( Term
+  , Term_(..)
+  , Cell(..)
+  , Case(..)
+  , Pattern(..)
   ) where
 
 import GHC.Generics
@@ -10,8 +14,10 @@ import Control.DeepSeq
 import Data.Text (Text)
 
 import TeenyTT.Base.Ident
+import TeenyTT.Base.Location
 
-data Term
+type Term = Loc Term_
+data Term_
     = Var Text
     | Let Term Ident Term
     | Ann { term :: Term, tp :: Term }
@@ -36,7 +42,7 @@ data Term
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
 
-data Cell = Cell { names :: [Ident], tp :: Term }
+data Cell = Cell { names :: [Ident], tp :: Loc Term }
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
 

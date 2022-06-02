@@ -16,17 +16,17 @@ import Data.Text (Text)
 import TeenyTT.Base.Location
 
 data Token
-    = TokSymbol Symbol Span
-    | TokKeyword Keyword Span
-    | TokLiteral Literal Span
-    | TokIdent {-# UNPACK #-} (Loc Text)
-    | TokDirective {-# UNPACK #-} (Loc Text)
+    = TokSymbol (Loc Symbol)
+    | TokKeyword (Loc Keyword)
+    | TokLiteral Literal
+    | TokIdent (Loc Text)
+    | TokDirective (Loc Text)
     | EOF Span
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
 
 data Literal
-    = NumLit Integer
+    = NumLit (Loc Integer)
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
 

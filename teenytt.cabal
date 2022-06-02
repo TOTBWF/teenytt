@@ -25,15 +25,20 @@ extra-source-files:
 
 library
     exposed-modules:
+        -- Base
         TeenyTT.Base.ByteString
         TeenyTT.Base.Ident
         TeenyTT.Base.Location
         TeenyTT.Base.SymbolTable
+        -- Elaborator
         TeenyTT.Elaborator.ConcreteSyntax
+        -- Frontend
+        TeenyTT.Frontend.Command
         TeenyTT.Frontend.Driver
         TeenyTT.Frontend.Driver.Monad
         TeenyTT.Frontend.Parser
         TeenyTT.Frontend.Parser.Lexer
+        TeenyTT.Frontend.Parser.Grammar
         TeenyTT.Frontend.Parser.Monad
         TeenyTT.Frontend.Parser.Token
     hs-source-dirs: src

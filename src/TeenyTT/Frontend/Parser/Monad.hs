@@ -84,8 +84,8 @@ runParser path codes buffer (Parser m) =
 -- Errors
 
 data ParseError
-    = EmptyTokenStream Pos
-    | UnexpectedToken (Loc Token)
+    = EmptyTokenStream
+    | UnexpectedToken Token
     | InvalidLexeme Pos
     deriving stock Show
     deriving anyclass Exception
@@ -262,17 +262,17 @@ emitNumLiteral :: ByteString -> Parser Token
 emitNumLiteral bs = do
     sp <- location
     case ASCII_BS.readInteger bs of
-      Just (n, _) -> pure $ TokLiteral (NumLit n) sp
+      Just (n, _) -> pure $ TokLiteral (NumLit (Loc sp n))
       Nothing -> parseError $ InvalidLexeme (Loc.startPos sp)
 
 {-# INLINE emitSymbol #-}
 emitSymbol :: Symbol -> ByteString -> Parser Token
-emitSymbol sym _ = TokSymbol sym <$> location
+emitSymbol sym _ = TokSymbol <$> located sym
 
 {-# INLINE emitKeyword #-}
 emitKeyword :: Keyword -> ByteString -> Parser Token
-emitKeyword key _ = TokKeyword key <$> location
+emitKeyword key _ = TokKeyword <$> located key
 
 {-# INLINE emitLayout #-}
 emitLayout :: Symbol -> Parser Token
-emitLayout sym = TokSymbol sym <$> location
+emitLayout sym = TokSymbol <$> located sym
