@@ -30,6 +30,10 @@ library
         TeenyTT.Base.Location
         TeenyTT.Base.SymbolTable
         TeenyTT.Elaborator.ConcreteSyntax
+        TeenyTT.Frontend.Parser
+        TeenyTT.Frontend.Parser.Lexer
+        TeenyTT.Frontend.Parser.Monad
+        TeenyTT.Frontend.Parser.Token
     hs-source-dirs: src
     ghc-options:
         -- Note that -Wall doesn't enable /all/ warnings
@@ -76,15 +80,23 @@ library
         FlexibleContexts
         FlexibleInstances
         -- Typesystem Extensions
+        RankNTypes
         ScopedTypeVariables
     build-depends:
-         base >=4.16 && <5
+         array >= 0.5
+       , base >=4.16 && <5
        , bytestring >= 0.11
+       , deepseq >= 1.4
        , primitive >= 0.7
        , hashable >= 1.4
+       , mtl >= 2.3
        -- We want to use the UTF-8 encoding
        , text >= 2.0
+       , transformers >= 0.6
        , utf8-string
+    build-tool-depends:
+         alex:alex >= 3.2
+       , happy:happy >= 1.2
     default-language: Haskell2010
 
 executable teenytt

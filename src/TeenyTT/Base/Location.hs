@@ -2,7 +2,15 @@
 
 -- | Source Spans and Source Locations.
 module TeenyTT.Base.Location
-  ( Span(..)
+  (
+  -- * Positions
+    Pos(..)
+  , posStart
+  , nextCol
+  , nextLine
+  -- * Spans
+  , Span(..)
+  , spanStart
   -- * Located Data
   , Loc(..)
   , unlocate
@@ -14,21 +22,50 @@ module TeenyTT.Base.Location
   , slice
   ) where
 
+import GHC.Generics
+import GHC.Records (HasField(..))
+
+import Control.DeepSeq
+
 import TeenyTT.Base.ByteString (ByteString)
 import TeenyTT.Base.ByteString qualified as BS
 
-import GHC.Records (HasField(..))
+
+--------------------------------------------------------------------------------
+-- Positions
 
 data Pos = Pos
     { pos :: Int
-    -- ^ The absolute position in the file, measured in bytes.
+    -- ^ The absolute position in the file, measured in graphemes.
     , bol :: Int
-    -- ^ The absolute position of the beginning of the line, measured in bytes.
+    -- ^ The absolute position of the beginning of the line, measured in graphemes.
     , lineNum :: Int
     -- ^ The line number of the position.
     , filename :: FilePath
     -- ^ The absolute filepath of the file the position originated from.
     }
+    deriving stock (Show, Generic)
+    deriving anyclass (NFData)
+
+-- | The column number of the start of a span.
+instance HasField "col" Pos Int where
+    getField pos = pos.pos - pos.bol
+
+-- | The position at the start of a file.
+posStart :: FilePath -> Pos
+posStart path =
+    Pos 0 0 0 path
+
+-- | Advance a position to the next grapheme.
+nextCol :: Pos -> Pos
+nextCol p = p { pos = p.pos + 1 }
+
+-- | Advance a position to the start of the next line.
+nextLine :: Pos -> Pos
+nextLine p = p { pos = p.pos + 1, bol = p.pos + 1, lineNum = p.lineNum + 1 }
+
+--------------------------------------------------------------------------------
+-- Spans
 
 -- | A source span.
 data Span = Span
@@ -51,6 +88,8 @@ data Span = Span
     , filename :: FilePath
     -- ^ The absolute filepath of the file the span originated from.
     }
+    deriving stock (Show, Generic)
+    deriving anyclass (NFData)
 
 -- | The column number of the start of a span.
 instance HasField "startCol" Span Int where
@@ -60,11 +99,17 @@ instance HasField "startCol" Span Int where
 instance HasField "stopCol" Span Int where
     getField sp = sp.stop - sp.stopBol
 
+-- | The empty span at the start of a file
+spanStart :: FilePath -> Span
+spanStart path = Span 0 0 0 0 0 0 path
+
 --------------------------------------------------------------------------------
 -- Locations
 
 -- | Some data, along with a span.
 data Loc a = Loc Span a
+    deriving stock (Show, Generic)
+    deriving anyclass (NFData)
 
 -- | Drop the span from some located data.
 unlocate :: Loc a -> a
