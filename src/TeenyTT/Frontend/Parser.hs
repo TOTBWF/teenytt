@@ -1,6 +1,6 @@
 -- | The interface to the @teenytt@ parser.
 module TeenyTT.Frontend.Parser
-  (
+  ( tokenize
   ) where
 
 import Data.ByteString (ByteString)
