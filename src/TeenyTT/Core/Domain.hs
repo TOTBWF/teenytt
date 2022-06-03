@@ -8,6 +8,7 @@ module TeenyTT.Core.Domain
   , Frame(..)
   , Clo(..)
   -- * Smart Constructors
+  , local
   , global
   , hole
   , pushFrame
@@ -19,6 +20,9 @@ import TeenyTT.Core.Types
 
 type Term = Value
 type Type = ValueType
+
+local :: Int -> Value
+local lvl = VNeu (KLocal lvl) []
 
 global :: Text -> Value -> Value
 global name ~val = VNeu (KGlobal name val) []

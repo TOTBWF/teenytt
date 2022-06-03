@@ -63,7 +63,7 @@ data Value
     deriving stock (Show)
 
 data ValueType
-    = ElNeu Head [Frame]
+    = VElNeu Head [Frame]
     | VPi Ident ValueType (Clo SyntaxType)
     | VSigma Ident ValueType (Clo SyntaxType)
     | VNat
