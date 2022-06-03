@@ -95,16 +95,17 @@ operator : forall tele_cells '->' term       { Loc ($1 <> locate $4) (Pi $2 $4) 
          | lambda plain_idents '->' term     { Loc ($1 <> locate $4) (Lam $2 $4) }
 
 atom :: { Term }
-atom : '(' term ')'    { $2 }
-     | '?'             { Loc $1 Hole }
-     | '{!' term '!}'  { Loc ($1 <> $3) (Incomplete $2) }
-     | name            { Loc (locate $1) (Var (unlocate $1)) }
-     | literal         { literal $1 }
-     | nat             { Loc $1 Nat }
-     | suc atom        { Loc ($1 <> locate $2) (Suc $2) }
-     | type            { Loc $1 Univ }
-     | fst atom        { Loc ($1 <> locate $2) (Fst $2) }
-     | snd atom        { Loc ($1 <> locate $2) (Snd $2) }
+atom : '(' term ')'          { $2 }
+     | '(' term ':' term ')' { Loc ($1 <> $5) (Ann $2 $4) }
+     | '?'                   { Loc $1 Hole }
+     | '{!' term '!}'        { Loc ($1 <> $3) (Incomplete $2) }
+     | name                  { Loc (locate $1) (Var (unlocate $1)) }
+     | literal               { literal $1 }
+     | nat                   { Loc $1 Nat }
+     | suc atom              { Loc ($1 <> locate $2) (Suc $2) }
+     | type                  { Loc $1 Univ }
+     | fst atom              { Loc ($1 <> locate $2) (Fst $2) }
+     | snd atom              { Loc ($1 <> locate $2) (Snd $2) }
 
 --------------------------------------------------------------------------------
 -- Identifiers + Cells

@@ -1,2 +1,6 @@
+-- You can press 'C-c C-l' in emacs to load this file,
+-- provided you have the emacs mode installed.
+
+-- The identity function
 id : ∀ (x : Type) (a : x) → x
 id = λ _ a → a

@@ -15,12 +15,16 @@ import Prettyprinter.Render.Text
 import TeenyTT.Frontend.Driver.Monad
 
 import TeenyTT.Frontend.Parser qualified as P
+import TeenyTT.Frontend.Command (displayCommand)
 
 unimplemented :: String -> IO ()
 unimplemented msg = liftIO $ putStrLn $ "Unimplemented: " <> msg
 
 loadFile :: FilePath -> IO ()
 loadFile path = unimplemented "File loading"
+
+divider :: Driver ()
+divider = liftIO $ putStrLn $ '\n' : replicate 80 '-' 
 
 lexFile :: FilePath -> IO ()
 lexFile path = do
@@ -35,7 +39,9 @@ parseFile path = do
     runDriver bytes $ do
         toks <- P.tokenize path bytes
         liftIO $ putDoc $ vcat $ fmap pretty toks
-        liftIO $ putStrLn $ '\n' : replicate 80 '-' 
+        divider
         cmds <- liftIO $ P.commands path bytes
-        liftIO $ print cmds
+        liftIO $ putDoc $ vcat (fmap displayCommand cmds)
+        divider
+
 

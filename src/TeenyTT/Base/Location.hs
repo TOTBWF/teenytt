@@ -135,6 +135,10 @@ data Loc a = Loc Span a
 instance Pretty a => Pretty (Loc a) where
     pretty (Loc _ a) = pretty a
 
+instance Display a => Display (Loc a) where
+    classify (Loc _ a) = classify a
+    display' env (Loc _ a) = display' env a
+
 -- | Drop the span from some located data.
 unlocate :: Loc a -> a
 unlocate (Loc _ a) = a
