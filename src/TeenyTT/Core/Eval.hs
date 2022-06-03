@@ -68,7 +68,7 @@ eval (S.Local ix) =
     var ix
 eval (S.Global name ~val) =
     pure $ D.Global name val []
-eval (S.Let tm x body) = do
+eval (S.Let x tm body) = do
     vtm <- eval tm
     extend vtm $ eval body
 eval (S.Lam x body) =

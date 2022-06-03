@@ -279,13 +279,11 @@ indexOf key tbl =
     Index {entryIndex} ->
         Just entryIndex
 
-index :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m (k, a)
+index :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m a
 index ix tbl = do
     used <- readMutVar tbl.used
-    -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
-    key <- readDynamicArray tbl.keys (used - ix - 1)
     value <- readDynamicArray tbl.values (used - ix - 1)
-    pure (key, value)
+    pure value
 
 level :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m (k, a)
 level lvl tbl = do

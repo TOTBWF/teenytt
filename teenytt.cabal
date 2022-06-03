@@ -31,6 +31,7 @@ library
         TeenyTT.Base.Env
         TeenyTT.Base.Ident
         TeenyTT.Base.Location
+        TeenyTT.Base.Prec
         TeenyTT.Base.Pretty
         TeenyTT.Base.SymbolTable
         -- Core

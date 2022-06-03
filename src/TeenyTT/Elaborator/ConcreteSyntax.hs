@@ -18,6 +18,7 @@ import Data.Text (Text)
 import TeenyTT.Base.Ident
 import TeenyTT.Base.Location
 import TeenyTT.Base.Pretty
+import TeenyTT.Base.Prec qualified as Prec
 
 type Term = Loc Term_
 data Term_
@@ -70,23 +71,12 @@ data Pattern
 -- instead of 'bindVar'. This is fine for the concrete syntax, as we don't have
 -- any tricky shadowing situations like we do with the core syntax.
 
-passed, atom, comma, colon, delimited, juxtaposition, times, arrow, lambda, in_ :: Prec
-passed = nonassoc 8
-atom = nonassoc 7
-delimited = nonassoc 6
-juxtaposition = nonassoc 5
-comma = nonassoc 3
-colon = nonassoc 3
-times = right 2
-arrow = right 2
-lambda = right 1
-in_ = nonassoc 0
 
 instance Display Cell where
-    classify _ = delimited
+    classify _ = Prec.delimited
     display' env (Cell names tp) = do
         let pnames = hsep $ toList $ fmap pretty names
-        ptp <- display (rightOf colon env) tp
+        ptp <- display (rightOf Prec.colon env) tp
         pure $ parens $ pnames <+> ":" <+> ptp
 
 instance Pretty Pattern where
@@ -94,40 +84,40 @@ instance Pretty Pattern where
     pretty (Inductive v ih) = parens $ pretty v <+> "→" <+> pretty ih
 
 instance Display Case where
-    classify _ = lambda
+    classify _ = Prec.lambda
     display' env c = do
-        pbody <- display (leftOf arrow env) c.body
+        pbody <- display (leftOf Prec.arrow env) c.body
         pure $ pretty c.lbl <+> hsep (fmap pretty c.patterns) <+> "→" <+> pbody
 
 instance Display Term_ where
-    classify (Var _)        = atom
-    classify (Let _ _ _)    = juxtaposition <> in_
-    classify (Ann _ _)      = delimited
-    classify Hole           = atom
-    classify (Incomplete _) = delimited
-    classify (Pi _ _)       = arrow
-    classify (Lam _ _)      = lambda
-    classify (Ap _ _)       = juxtaposition
-    classify (Sigma _ _)    = times
-    classify (Pair _ _)     = delimited
-    classify (Fst _)        = juxtaposition
-    classify (Snd _)        = juxtaposition
-    classify Univ           = atom
-    classify Nat            = atom
-    classify (Lit _)        = atom
-    classify Zero           = atom
-    classify (Suc _)        = juxtaposition
-    classify (Elim _ _ _)   = juxtaposition
-    classify (LamElim _)    = lambda
+    classify (Var _)        = Prec.atom
+    classify (Let _ _ _)    = Prec.juxtaposition <> Prec.in_
+    classify (Ann _ _)      = Prec.delimited
+    classify Hole           = Prec.atom
+    classify (Incomplete _) = Prec.delimited
+    classify (Pi _ _)       = Prec.arrow
+    classify (Lam _ _)      = Prec.lambda
+    classify (Ap _ _)       = Prec.juxtaposition
+    classify (Sigma _ _)    = Prec.times
+    classify (Pair _ _)     = Prec.delimited
+    classify (Fst _)        = Prec.juxtaposition
+    classify (Snd _)        = Prec.juxtaposition
+    classify Univ           = Prec.atom
+    classify Nat            = Prec.atom
+    classify (Lit _)        = Prec.atom
+    classify Zero           = Prec.atom
+    classify (Suc _)        = Prec.juxtaposition
+    classify (Elim _ _ _)   = Prec.juxtaposition
+    classify (LamElim _)    = Prec.lambda
 
     display' env (Var txt) = pure $ pretty txt
     display' env (Let tm x body) = do
         ptm <- display (isolated env) tm
-        pbody <- display (rightOf in_ env) body
+        pbody <- display (rightOf Prec.in_ env) body
         pure $ "let" <+> pretty x <+> "=" <+> ptm <+> "in" <+> pbody
     display' env (Ann tm tp) = do
-        ptm <- display (leftOf colon env) tm
-        ptp <- display (rightOf colon env) tp
+        ptm <- display (leftOf Prec.colon env) tm
+        ptp <- display (rightOf Prec.colon env) tp
         pure $ ptm <+> ":" <+> ptp
     display' env Hole = pure $ "?"
     display' env (Incomplete tm) = do 
@@ -135,29 +125,29 @@ instance Display Term_ where
         pure $ "{!" <+> ptm <+> "!}"
     display' env (Pi cells body) = do
         pcells <- traverse (display env) cells
-        pbody <- display (rightOf arrow env) body
+        pbody <- display (rightOf Prec.arrow env) body
         pure $ "∀" <+> hsep pcells <+> "→" <+> pbody
     display' env (Lam idents body) = do
         let pidents = hsep $ toList $ fmap pretty idents
-        pbody <- display (leftOf lambda env) body
+        pbody <- display (leftOf Prec.lambda env) body
         pure $ "λ" <+> pidents <+> "→" <+> pbody
     display' env (Ap tm args) = do
-        ptm <- display (leftOf juxtaposition env) tm
-        pargs <- traverse (display (rightOf juxtaposition env)) args
+        ptm <- display (leftOf Prec.juxtaposition env) tm
+        pargs <- traverse (display (rightOf Prec.juxtaposition env)) args
         pure $ ptm <+> hsep pargs
     display' env (Sigma cells body) = do
         pcells <- traverse (display env) cells
-        pbody <- display (rightOf times env) body
+        pbody <- display (rightOf Prec.times env) body
         pure $ hsep pcells <+> "×" <+> pbody
     display' env (Pair l r) = do
-        pl <- display (leftOf comma env) l
-        pr <- display (rightOf comma env) l
+        pl <- display (leftOf Prec.comma env) l
+        pr <- display (rightOf Prec.comma env) l
         pure $ parens $ pl <+> "," <> pr
     display' env (Fst tm) = do
-        ptm <- display (rightOf juxtaposition env) tm
+        ptm <- display (rightOf Prec.juxtaposition env) tm
         pure $ "fst" <+> ptm
     display' env (Snd tm) = do
-        ptm <- display (rightOf juxtaposition env) tm
+        ptm <- display (rightOf Prec.juxtaposition env) tm
         pure $ "snd" <+> ptm
     display' env Univ = 
         pure "Type"
@@ -168,11 +158,11 @@ instance Display Term_ where
     display' env Zero =
         pure $ "zero"
     display' env (Suc tm) = do
-        ptm <- display (rightOf juxtaposition env) tm
+        ptm <- display (rightOf Prec.juxtaposition env) tm
         pure $ "suc" <+> ptm
     display' env (Elim mot cases scrut) = do
-        pscrut <- display (leftOf juxtaposition env) scrut
-        pmot <- display (rightOf juxtaposition env) mot
+        pscrut <- display (leftOf Prec.juxtaposition env) scrut
+        pmot <- display (rightOf Prec.juxtaposition env) mot
         pcases <- traverse (display env) cases
         pure $ "elim" <+> pscrut <+> "with" <+> pmot <+> (brackets $ sep $ punctuate "," pcases)
     display' env (LamElim cases) = do

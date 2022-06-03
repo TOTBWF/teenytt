@@ -15,26 +15,18 @@ module TeenyTT.Base.Pretty
   -- * Display
   , Display(..)
   , display
+  -- ** Precedences
   , leftOf
   , rightOf
   , surrounded
   , isolated
   , isolateLeft
   , isolateRight
+  -- ** Variables
+  , index
+  , extend
   , presentTop
-  -- * Re-Exports
-  , Doc
-  , Pretty(..)
-  , (<+>)
-  , vcat
-  , hcat
-  , vsep
-  , hsep
-  , sep
-  , punctuate
-  , indent
-  , parens
-  , brackets
+  , module PP
   ) where
 
 import GHC.TypeLits
@@ -42,8 +34,9 @@ import GHC.TypeLits
 import Control.Monad.Primitive
 import Control.Monad.ST
 
+import GHC.Char (chr)
+import Data.Functor
 import Data.Kind
-import Data.Text
 
 import Prettyprinter as PP
 
@@ -90,9 +83,7 @@ postfix n = Prec (2*n) maxBound
 data DisplayEnv s =
     DisplayEnv
     { prec :: (Int, Int)
-    -- [TODO: Reed M, 02/06/2022] This is probably not the best datastructure?
-    -- Somewhat unclear...
-    , vars :: SymbolTable s Text Int
+    , vars :: SymbolTable s Ident (Int, Doc ())
     }
 
 leftOf :: Prec -> DisplayEnv s -> DisplayEnv s
@@ -116,6 +107,28 @@ isolateRight (Prec l _) env = env { prec = (l, minBound) }
 shouldParens :: Prec -> DisplayEnv s -> Bool
 shouldParens (Prec pl pr) DisplayEnv{ prec = (el, er) } = el >= pl || er >= pr
 
+extend :: (PrimMonad m) => Ident -> DisplayEnv (PrimState m) -> (Doc () -> m a) -> m a
+extend ident env k = do 
+    (n, doc) <- Tbl.lookup ident env.vars <&> \case
+        Just (n, doc) -> (n, doc)
+        Nothing -> (0, pretty ident)
+    let mangled = mangle n doc
+    Tbl.push ident (n + 1, mangled) env.vars
+    a <- k mangled
+    Tbl.pop_ env.vars
+    pure a
+    where
+      mangle :: Int -> Doc ann -> Doc ann
+      mangle 0 doc = fuse Shallow doc
+      mangle n doc =
+          let (d, r) = n `divMod` 10
+              subscript = pretty $ chr $ 8320 + r
+          in mangle d doc <> subscript
+
+index :: (PrimMonad m) => Int -> DisplayEnv (PrimState m) -> m (Doc ())
+index ix env =
+    snd <$> Tbl.index ix env.vars
+
 class Display a where
     classify :: a -> Prec
     display' :: (PrimMonad m) => DisplayEnv (PrimState m) -> a -> m (Doc ())
@@ -137,7 +150,7 @@ presentTop a = runST do
 type family CannotDisplayIdentifiers :: Constraint where
   CannotDisplayIdentifiers = TypeError
     ( 'Text "🚫 You should not try to display identifiers!" ':$$:
-      'Text "💡 Use 'bindVar' to bind the identifier in the display environment instead."
+      'Text "💡 Use 'extend' to bind the identifier in the display environment instead."
     )
 
 instance CannotDisplayIdentifiers => Display Ident where
