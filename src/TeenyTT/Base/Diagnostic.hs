@@ -5,6 +5,7 @@ module TeenyTT.Base.Diagnostic
   , Code(..)
   , Snippet(..)
   , render
+  , impossible
   ) where
 
 import Control.Exception
@@ -86,3 +87,10 @@ render :: ByteString -> Diagnostic -> Doc ()
 render buffer diag =
     let header = pretty diag.severity <+> (pretty diag.code)
     in vcat (header:fmap (renderSnippet buffer) diag.snippets)
+
+impossible :: Text -> a
+impossible msg = throw $
+    Diagnostic { severity = Panic
+               , code = Impossible msg
+               , snippets = []
+               }
