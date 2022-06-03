@@ -33,6 +33,8 @@ library
         TeenyTT.Base.Location
         TeenyTT.Base.Pretty
         TeenyTT.Base.SymbolTable
+        -- Core
+        TeenyTT.Core.Types
         -- Elaborator
         TeenyTT.Elaborator.ConcreteSyntax
         -- Frontend

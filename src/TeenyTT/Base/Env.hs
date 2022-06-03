@@ -30,6 +30,7 @@ data Env a =
     { items    :: Array a
     , used     :: Int
     }
+    deriving stock (Show)
 
 --------------------------------------------------------------------------------
 -- Resizing

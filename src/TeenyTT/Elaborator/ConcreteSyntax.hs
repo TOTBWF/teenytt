@@ -40,6 +40,7 @@ data Term_
 
     | Nat
     | Lit Integer
+    | Zero
     | Suc Term
 
     | Elim Term [Case] Term
@@ -63,6 +64,11 @@ data Pattern
 
 --------------------------------------------------------------------------------
 -- Display
+--
+-- [NOTE: Displaying Concrete Syntax]
+-- We do something a little bit evil here, and use 'pretty' on identifiers
+-- instead of 'bindVar'. This is fine for the concrete syntax, as we don't have
+-- any tricky shadowing situations like we do with the core syntax.
 
 passed, atom, comma, colon, delimited, juxtaposition, times, arrow, lambda, in_ :: Prec
 passed = nonassoc 8
@@ -109,6 +115,7 @@ instance Display Term_ where
     classify Univ           = atom
     classify Nat            = atom
     classify (Lit _)        = atom
+    classify Zero           = atom
     classify (Suc _)        = juxtaposition
     classify (Elim _ _ _)   = juxtaposition
     classify (LamElim _)    = lambda
@@ -158,6 +165,8 @@ instance Display Term_ where
         pure "ℕ"
     display' env (Lit n) =
         pure $ pretty n
+    display' env Zero =
+        pure $ "zero"
     display' env (Suc tm) = do
         ptm <- display (rightOf juxtaposition env) tm
         pure $ "suc" <+> ptm
