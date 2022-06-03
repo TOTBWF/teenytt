@@ -1,8 +1,12 @@
 -- | The core syntax of @teenytt@
 module TeenyTT.Core.Syntax
-  ( Term(..)
+  ( Term
+  , Type
+  , Syntax(..)
+  , SyntaxType(..)
   ) where
 
-data Term
-    = Local Int
-    |
+import TeenyTT.Core.Types
+
+type Term = Syntax
+type Type = SyntaxType

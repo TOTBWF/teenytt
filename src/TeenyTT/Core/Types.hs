@@ -6,6 +6,7 @@ module TeenyTT.Core.Types (
   , SyntaxType(..)
   -- * Domain
   , Value(..)
+  , ValueType(..)
   , Head(..)
   , Frame(..)
   , Clo(..)
@@ -29,20 +30,18 @@ data Syntax
     | Pair Syntax Syntax
     | Fst Syntax
     | Snd Syntax
-    | Lit Integer
     | Zero
     | Suc Syntax
     | NatElim Syntax Syntax Syntax Syntax
-    | CodePi Syntax Syntax
-    | CodeSigma Syntax Syntax
+    | CodePi Ident Syntax Syntax
+    | CodeSigma Ident Syntax Syntax
     | CodeUniv
     | CodeNat
     deriving stock (Show)
 
 data SyntaxType
-    = TpVar Int
-    | Pi SyntaxType Ident SyntaxType
-    | Sigma SyntaxType Ident SyntaxType
+    = Pi Ident SyntaxType SyntaxType
+    | Sigma Ident SyntaxType SyntaxType
     | El Syntax
     | Nat
     | Univ
@@ -57,12 +56,16 @@ data Value
     | VPair Value Value
     | VZero
     | VSuc Value
+    | VCodePi Ident Value (Clo Syntax)
+    | VCodeSigma Ident Value (Clo Syntax)
+    | VCodeUniv
+    | VCodeNat
     deriving stock (Show)
 
 data ValueType
     = ElNeu Head [Frame]
-    | VPi ValueType Ident (Clo SyntaxType)
-    | VSigma ValueType Ident (Clo SyntaxType)
+    | VPi Ident ValueType (Clo SyntaxType)
+    | VSigma Ident ValueType (Clo SyntaxType)
     | VNat
     | VUniv
 
