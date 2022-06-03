@@ -1,4 +1,4 @@
--- |
+-- | Conversion Checking.
 module TeenyTT.Core.Conversion
   ( ConvertM
   , runConvertM
@@ -30,12 +30,12 @@ import TeenyTT.Core.Eval qualified as Eval
 newtype ConvertM a = ConvertM { unConvertM :: ReaderT ConvertEnv IO a }
     deriving newtype (Functor, Applicative, Monad, MonadReader ConvertEnv)
 
-runConvertM :: Int -> ConvertM a -> Maybe a
+runConvertM :: Int -> ConvertM () -> Bool
 runConvertM size m =
     unsafePerformIO $
     let env = ConvertEnv { size, mode = Rigid }
-    in catch (Just <$> runReaderT m.unConvertM env) \case
-      NotConvertible -> pure Nothing
+    in catch (True <$ runReaderT m.unConvertM env) \case
+      NotConvertible -> pure False
 
 data Mode
     = Full
