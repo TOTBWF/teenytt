@@ -7,6 +7,7 @@ module TeenyTT.Core.Types (
   -- * Domain
   , Value(..)
   , ValueType(..)
+  , Neu(..)
   , Head(..)
   , Frame(..)
   , Clo(..)
@@ -51,7 +52,7 @@ data SyntaxType
 -- Domain
 
 data Value
-    = VNeu Head [Frame]
+    = VNeu Neu
     | VLam Ident (Clo Syntax)
     | VPair Value Value
     | VZero
@@ -63,11 +64,14 @@ data Value
     deriving stock (Show)
 
 data ValueType
-    = VElNeu Head [Frame]
+    = VElNeu Neu
     | VPi Ident ValueType (Clo SyntaxType)
     | VSigma Ident ValueType (Clo SyntaxType)
     | VNat
     | VUniv
+
+data Neu = Neu { hd :: Head, spine :: [Frame] }
+    deriving stock (Show)
 
 data Head
     = KLocal Int

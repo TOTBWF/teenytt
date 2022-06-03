@@ -15,6 +15,8 @@ module TeenyTT.Core.Eval
   -- * Closures
   , instTmClo
   , instTpClo
+  -- * Unfolding
+  , unfold
   ) where
 
 import Control.Monad.Primitive
@@ -65,7 +67,7 @@ eval :: S.Term -> EvalM s D.Term
 eval (S.Local ix) =
     var ix
 eval (S.Global name ~val) =
-    pure $ D.global name val
+    pure $ D.Global name val []
 eval (S.Let tm x body) = do
     vtm <- eval tm
     extend vtm $ eval body
@@ -74,7 +76,7 @@ eval (S.Lam x body) =
 eval (S.Ap fn arg) =
     doAp <$> eval fn <*> eval arg
 eval S.Hole =
-    pure D.hole
+    pure $ D.Hole []
 eval (S.Pair l r) =
     D.VPair <$> eval l <*> eval r
 eval (S.Fst tm) =
@@ -113,23 +115,23 @@ evalTp S.Nat =
 
 doAp :: D.Term -> D.Term -> D.Term
 doAp (D.VLam x vclo) varg = instTmClo vclo varg
-doAp (D.VNeu hd frms) varg = D.pushFrame hd frms (D.KAp varg) (\vfn -> doAp vfn varg)
+doAp (D.VNeu neu) varg = D.VNeu $ D.pushFrame neu (D.KAp varg) (\vfn -> doAp vfn varg)
 doAp _ varg = impossible "bad doAp"
 
 doFst :: D.Term -> D.Term
 doFst (D.VPair l _) = l
-doFst (D.VNeu hd frms) = D.pushFrame hd frms D.KFst doFst
+doFst (D.VNeu neu) = D.VNeu $ D.pushFrame neu D.KFst doFst
 doFst _ = impossible "bad doFst"
 
 doSnd :: D.Term -> D.Term
 doSnd (D.VPair _ r) = r
-doSnd (D.VNeu hd frms) = D.pushFrame hd frms D.KSnd doSnd
+doSnd (D.VNeu neu) = D.VNeu $ D.pushFrame neu D.KSnd doSnd
 doSnd _ = impossible "bad doSnd"
 
 doNatElim :: D.Term -> D.Term -> D.Term -> D.Term -> D.Term
 doNatElim mot z s D.VZero = z
 doNatElim mot z s (D.VSuc tm) = doAp s (doNatElim mot z s tm)
-doNatElim mot z s (D.VNeu hd frms) = D.pushFrame hd frms (D.KNatElim mot z s) (doNatElim mot z s)
+doNatElim mot z s (D.VNeu neu) = D.VNeu $ D.pushFrame neu (D.KNatElim mot z s) (doNatElim mot z s)
 doNatElim _ _ _ _ = impossible "bad doNatElim"
 
 doEl :: D.Term -> D.Type
@@ -153,3 +155,10 @@ instTpClo (D.Clo env tp) val = runST do
     mutEnv <- Env.thaw env
     Env.push val mutEnv
     runReaderT (evalTp tp).unEvalM mutEnv
+
+--------------------------------------------------------------------------------
+-- Unfolding
+
+unfold :: D.Term -> D.Term
+unfold (D.VNeu (D.Neu { hd = D.KGlobal _ v })) = v
+unfold v = v

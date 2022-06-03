@@ -1,35 +1,44 @@
+{-# LANGUAGE PatternSynonyms #-}
 -- | Re-Exports of domain types, intended to be used with a qualified import.
 module TeenyTT.Core.Domain
   ( Term
   , Type
-  , Value(..)
-  , ValueType(..)
-  , Head(..)
-  , Frame(..)
-  , Clo(..)
-  -- * Smart Constructors
-  , local
-  , global
-  , hole
+  , module Types
+  -- * Pattern Synonyms
+  , pattern Local
+  , pattern Global
+  , pattern Hole
+  -- * Neutrals
   , pushFrame
   ) where
 
 import Data.Text (Text)
 
-import TeenyTT.Core.Types
+import TeenyTT.Core.Types as Types
+    ( Value(..)
+    , ValueType(..)
+    , Neu(..)
+    , Head(..)
+    , Frame(..)
+    , Clo(..)
+    )
+
 
 type Term = Value
 type Type = ValueType
 
-local :: Int -> Value
-local lvl = VNeu (KLocal lvl) []
+pattern Local :: Int -> [Frame] -> Value
+pattern Local lvl spine = VNeu (Neu (KLocal lvl) spine)
 
-global :: Text -> Value -> Value
-global name ~val = VNeu (KGlobal name val) []
+pattern Global :: Text -> Value -> [Frame] -> Value
+pattern Global name val spine = VNeu (Neu (KGlobal name val) spine)
 
-hole :: Value
-hole = VNeu KHole []
+pattern Hole :: [Frame] -> Value
+pattern Hole spine = VNeu (Neu KHole spine)
 
-pushFrame :: Head -> [Frame] -> Frame -> (Value -> Value) -> Value
-pushFrame (KGlobal name ~v) spine frm unfold = VNeu (KGlobal name (unfold v)) (frm : spine)
-pushFrame hd spine frm _ = VNeu hd (frm : spine)
+pushFrame :: Neu -> Frame -> (Value -> Value) -> Neu
+pushFrame neu frm unf = case neu.hd of
+  KGlobal name ~v ->
+      neu { hd = KGlobal name (unf v), spine = frm : neu.spine }
+  _ ->
+      neu { spine = frm : neu.spine }

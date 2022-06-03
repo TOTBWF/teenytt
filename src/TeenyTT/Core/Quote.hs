@@ -32,8 +32,8 @@ extend :: (Int -> QuoteM a) -> QuoteM a
 extend k = local (1 +) (k =<< ask)
 
 quote :: D.Term -> QuoteM S.Term
-quote (D.VNeu hd spine) =
-    quoteNeu hd spine
+quote (D.VNeu neu) =
+    quoteNeu neu 
 quote (D.VLam x clo) =
     S.Lam x <$> quoteTmClo clo
 quote (D.VPair l r) =
@@ -52,8 +52,8 @@ quote D.VCodeNat =
     pure S.CodeNat
 
 quoteTp :: D.Type -> QuoteM S.Type
-quoteTp (D.VElNeu hd frms) =
-    S.El <$> quoteNeu hd frms
+quoteTp (D.VElNeu neu) =
+    S.El <$> quoteNeu neu
 quoteTp (D.VPi x base clo) =
     S.Pi x <$> quoteTp base <*> quoteTpClo clo
 quoteTp (D.VSigma x base clo) =
@@ -82,16 +82,16 @@ quoteFrame D.KSnd tm =
 quoteFrame (D.KNatElim vmot vz vs) tm =
     S.NatElim <$> quote vmot <*> quote vz <*> quote vs <*> pure tm
 
-quoteNeu :: D.Head -> [D.Frame] -> QuoteM S.Term
-quoteNeu hd spine = do
-    tm <- quoteHead hd
-    foldrM quoteFrame tm spine
+quoteNeu :: D.Neu -> QuoteM S.Term
+quoteNeu neu = do
+    tm <- quoteHead neu.hd
+    foldrM quoteFrame tm neu.spine
 
 --------------------------------------------------------------------------------
 -- Quoting Closures
 
 quoteTmClo :: D.Clo S.Term -> QuoteM S.Term
-quoteTmClo clo = extend \lvl -> quote (Eval.instTmClo clo (D.local lvl))
+quoteTmClo clo = extend \lvl -> quote (Eval.instTmClo clo (D.Local lvl []))
 
 quoteTpClo :: D.Clo S.Type -> QuoteM S.Type
-quoteTpClo clo = extend \lvl -> quoteTp (Eval.instTpClo clo (D.local lvl))
+quoteTpClo clo = extend \lvl -> quoteTp (Eval.instTpClo clo (D.Local lvl []))
