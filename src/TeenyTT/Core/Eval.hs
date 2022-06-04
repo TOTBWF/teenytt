@@ -152,7 +152,8 @@ doEl (D.VCodePi x base fam) = D.VPi x (doEl base) (elClo fam)
 doEl (D.VCodeSigma x base fam) = D.VSigma x (doEl base) (elClo fam)
 doEl D.VCodeUniv = D.VUniv
 doEl D.VCodeNat = D.VNat
-doEl _ = impossible "bad doEl"
+doEl (D.VNeu neu) = D.VElNeu neu
+doEl _ = impossible $ "bad doEl"
 
 elClo :: D.Clo S.Term -> D.Clo S.Type
 elClo (D.Clo env tm) = D.Clo env (S.El tm)

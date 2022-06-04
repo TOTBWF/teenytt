@@ -230,7 +230,8 @@ popBufferedBytes input =
 {-# INLINE bufferBytes #-}
 bufferBytes :: Char -> [Word8] -> ByteString -> AlexInput -> AlexInput
 bufferBytes c bytes rest input =
-    input { prevChar = c
+    Input { pos = Loc.nextCol input.pos 
+          , prevChar = c
           , buffer = rest
           , pendingBytes = bytes
           }

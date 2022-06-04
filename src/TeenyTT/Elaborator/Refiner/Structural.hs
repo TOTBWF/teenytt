@@ -42,8 +42,8 @@ letSyn x tmTac bodyTac = T.Syn do
   pure (S.Let x tm body, vbodyTp)
 
 hole :: T.Chk
-hole = T.Chk \goal ->
-  -- [FIXME: Reed M, 03/06/2022] Print out the hole info. This requires passing in the source buffer to the elaborator.
+hole = T.Chk \goal -> do
+  holeInfo goal
   pure S.Hole
 
 incomplete :: T.Syn -> T.Chk

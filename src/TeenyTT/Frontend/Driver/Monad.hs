@@ -109,7 +109,8 @@ elab :: ElabM a -> Driver a
 elab m = do
     st <- ask
     path <- liftIO $ readIORef st.filename
-    liftIO $ runElabM st.globals (Loc.spanStart path) m
+    bytes <- liftIO $ readIORef st.buffer
+    liftIO $ runElabM st.globals bytes (Loc.spanStart path) m
 
 annotateTp :: Ident -> D.Type -> Driver ()
 annotateTp ident tp = do

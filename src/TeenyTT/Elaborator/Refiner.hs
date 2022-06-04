@@ -31,6 +31,7 @@ typCell k cell baseTac =
 
 typ :: CS.Term -> T.Tp
 typ locTp =
+    T.updateSpan (locate locTp) $
     case unlocate locTp of
       CS.Pi cells body ->
           foldr (typCell Pi.formation) (typ body) cells
@@ -45,6 +46,7 @@ typ locTp =
 
 chk :: CS.Term -> T.Chk
 chk locTm =
+    T.updateSpan (locate locTm) $
     case unlocate locTm of
       CS.Let x tm body ->
           Structural.letChk x (syn tm) (\_ _ -> chk body)
@@ -54,32 +56,33 @@ chk locTm =
           Structural.incomplete (syn tm)
 
       CS.Pi cells body ->
-          T.failChk $ notImplemented locTm
+          T.failure $ notImplemented locTm
       CS.Lam args body ->
           foldr (\arg tac -> Pi.intro arg \_ -> tac) (chk body) (toList args)
 
       CS.Sigma cells body ->
-          T.failChk $ notImplemented locTm
+          T.failure $ notImplemented locTm
       CS.Pair l r ->
           Sigma.intro (chk l) (chk r)
 
       CS.Univ ->
-          T.failChk $ notImplemented locTm
+          T.failure $ notImplemented locTm
 
       CS.Nat ->
-          T.failChk $ notImplemented locTm
+          T.failure $ notImplemented locTm
       CS.Lit n ->
           Nat.literal n
       CS.Suc tm ->
           Nat.suc (chk tm)
 
       CS.LamElim cases ->
-          T.failChk $ notImplemented locTm
+          T.failure $ notImplemented locTm
       _ -> T.chk (syn locTm)
 
 
 syn :: CS.Term -> T.Syn
 syn locTm =
+    T.updateSpan (locate locTm) $
     case unlocate locTm of
       CS.Var x ->
           Structural.var (User x)
@@ -101,4 +104,4 @@ syn locTm =
                 (case_.pattern, chk case_.body)
           in Macros.elim (chk mot) caseTacs (syn scrut)
       _ ->
-          T.failSyn $ cannotSynth locTm
+          T.failure $ cannotSynth locTm

@@ -4,7 +4,8 @@
 module TeenyTT.Elaborator.Monad
   ( ElabM
   , runElabM
-  -- * Errors
+  -- * Diagnostics
+  , holeInfo
   , expectedConnective
   , unboundVariable
   , outOfBoundsLiteral
@@ -13,6 +14,8 @@ module TeenyTT.Elaborator.Monad
   , cannotSynth
   , notAType
   , notImplemented
+  -- * Locations
+  , withSpan
   -- * Environments
   , abstract
   , Resolved(..)
@@ -40,9 +43,13 @@ import Control.Exception
 import Control.Monad.Primitive
 import Control.Monad.Reader
 
+import Data.ByteString (ByteString)
 import Data.Functor
 
-import TeenyTT.Base.Diagnostic
+import Prettyprinter.Render.Text
+
+import TeenyTT.Base.Diagnostic (Diagnostic(..), Snippet(..), Severity(..), Code(..))
+import TeenyTT.Base.Diagnostic qualified as Diagnostic
 import TeenyTT.Base.Env (MutableEnv)
 import TeenyTT.Base.Env qualified as Env
 import TeenyTT.Base.Ident
@@ -57,6 +64,8 @@ import TeenyTT.Core.Syntax qualified as S
 import TeenyTT.Core.NbE qualified as NbE
 
 import TeenyTT.Elaborator.ConcreteSyntax qualified as CS
+import GHC.Stack (HasCallStack)
+import Debug.Trace
 
 --------------------------------------------------------------------------------
 -- Elaboration Monad
@@ -73,22 +82,29 @@ data ElabEnv s
     , globals    :: SymbolTable s Ident (D.Term, D.Type) 
     , location   :: Span
     , displayEnv :: DisplayEnv RealWorld
+    , buffer     :: ByteString
     }
 
-runElabM :: SymbolTable RealWorld Ident (D.Term, D.Type) -> Span -> ElabM a -> IO a
-runElabM globals location m = do
+runElabM :: SymbolTable RealWorld Ident (D.Term, D.Type) -> ByteString -> Span -> ElabM a -> IO a
+runElabM globals buffer location m = do
     locals <- Env.new 128
     localTps <- Tbl.new 128
     displayEnv <- Pp.initEnv
-    runReaderT m.unElabM (ElabEnv {locals, localTps, globals, location, displayEnv})
+    runReaderT m.unElabM (ElabEnv {..})
 
 envSize :: ElabM Int
 envSize = ElabM do
     env <- ask
     Env.sizeM env.locals
 
+--------------------------------------------------------------------------------
+-- Locations
+
 currentSpan :: ElabM Span
 currentSpan = ElabM $ asks (\env -> env.location)
+
+withSpan :: Span -> ElabM a -> ElabM a
+withSpan sp (ElabM m) = ElabM $ local (\ElabEnv{..} -> ElabEnv { location = sp, .. }) m
 
 --------------------------------------------------------------------------------
 -- Environments
@@ -97,6 +113,7 @@ abstract :: Ident -> D.Type -> (D.Term -> ElabM a) -> ElabM a
 abstract x tp k = ElabM do
     env <- ask
     lvl <- Env.sizeM env.locals
+    traceM $ "Creating Var with level " <> show lvl
     let v = D.Local lvl []
     Env.push v env.locals
     Tbl.push x tp env.localTps
@@ -120,11 +137,11 @@ resolve name = ElabM do
           Nothing -> Unbound
 
 
-getLocal :: Int -> ElabM (D.Term, D.Type)
+getLocal :: (HasCallStack) => Int -> ElabM (D.Term, D.Type)
 getLocal ix = ElabM do
     env <- ask
-    v <- Env.index ix env.locals
-    vtp <- Tbl.index ix env.localTps
+    !v <- Env.index ix env.locals
+    !vtp <- Tbl.index ix env.localTps
     pure (v, vtp)
 
 getGlobal :: Int -> ElabM (D.Term, D.Type)
@@ -138,10 +155,24 @@ getGlobal ix = ElabM do
 fatal :: Diagnostic -> ElabM a
 fatal diag = liftIO $ throwIO diag
 
+info :: Diagnostic -> ElabM ()
+info diag = ElabM do
+    env <- ask
+    liftIO $ putDoc $ Diagnostic.render env.buffer diag
+
 display :: (Display a) => a -> ElabM (Doc ())
 display a = ElabM do
     displayEnv <- asks (\env -> env.displayEnv)
     Pp.display displayEnv a
+
+holeInfo :: D.Type -> ElabM ()
+holeInfo vtp = do
+    location <- currentSpan
+    traceM "Quoting TP"
+    tp <- quoteTp vtp
+    ptp <- display tp
+    let snippet = Snippet { location, message = "Encountered hole of type" <+> ptp }
+    info $ Diagnostic { severity = Info, code = HoleInfo, snippets = [snippet] }
 
 tmConvError :: D.Term -> D.Term -> ElabM a
 tmConvError v0 v1 = do

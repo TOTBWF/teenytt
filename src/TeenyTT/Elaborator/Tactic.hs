@@ -3,25 +3,30 @@ module TeenyTT.Elaborator.Tactic (
     -- * Type Formation Tactics
       Tp(..)
     , runTp
-    , failTp
     -- * Check Tactics
     , Chk(..)
     , runChk
     , chk
-    , failChk
     , match
     -- * Synthesis Tactics
     , Syn(..)
     , runSyn
     , ann
-    , failSyn
     , observe
+    -- * Tactic Class
+    , Tactic(..)
     ) where
+
+import TeenyTT.Base.Location
 
 import TeenyTT.Core.Syntax qualified as S
 import TeenyTT.Core.Domain qualified as D
 
 import TeenyTT.Elaborator.Monad
+
+class Tactic tac where
+    failure :: (forall a. ElabM a) -> tac
+    updateSpan :: Span -> tac -> tac
 
 --------------------------------------------------------------------------------
 -- Type Tactics
@@ -32,8 +37,9 @@ newtype Tp = Tp { unTp :: ElabM S.Type }
 runTp :: Tp -> ElabM S.Type
 runTp tac = tac.unTp
 
-failTp :: (forall a. ElabM a) -> Tp
-failTp m = Tp m
+instance Tactic Tp where
+    failure err = Tp err
+    updateSpan sp (Tp m) = Tp $ withSpan sp m
 
 --------------------------------------------------------------------------------
 -- Check Tactics
@@ -43,6 +49,10 @@ newtype Chk = Chk { unChk :: D.Type -> ElabM S.Term }
 {-# INLINE runChk #-}
 runChk :: Chk -> D.Type -> ElabM S.Term
 runChk tac = tac.unChk
+
+instance Tactic Chk where
+    failure err = Chk \_ -> err
+    updateSpan sp (Chk k) = Chk \goal -> withSpan sp (k goal)
 
 {-# INLINE chk #-}
 chk :: Syn -> Chk
@@ -68,6 +78,10 @@ newtype Syn = Syn { unSyn :: ElabM (S.Term, D.Type) }
 runSyn :: Syn -> ElabM (S.Term, D.Type)
 runSyn tac = tac.unSyn
 
+instance Tactic Syn where
+    failure err = Syn err
+    updateSpan sp (Syn m) = Syn (withSpan sp m)
+
 ann :: Chk -> Tp -> Syn
 ann tac tpTac = Syn do
     tp <- runTp tpTac
@@ -75,8 +89,6 @@ ann tac tpTac = Syn do
     tm <- runChk tac vtp
     pure (tm, vtp)
 
-failSyn :: (forall a. ElabM a) -> Syn
-failSyn m = Syn m
 
 observe :: Syn -> (S.Term -> D.Type -> ElabM Syn) -> Syn
 observe synTac k = Syn do

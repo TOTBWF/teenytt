@@ -300,6 +300,7 @@ lookup key tbl =
       Free _ ->
           pure Nothing
       Index {entryIndex} ->
+          assert (entryIndex >= 0) $
           Just <$> readDynamicArray tbl.values entryIndex
 
 indexOf :: (PrimMonad m, Hashable k, Eq k) => k -> SymbolTable (PrimState m) k a -> m (Maybe Int)

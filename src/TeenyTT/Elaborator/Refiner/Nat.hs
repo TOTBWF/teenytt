@@ -38,7 +38,7 @@ suc tac = T.Chk \tp -> do
 literal :: Integer -> T.Chk
 literal n = 
     case compare n 0 of
-      LT -> T.failChk $ outOfBoundsLiteral n D.VNat
+      LT -> T.failure $ outOfBoundsLiteral n D.VNat
       EQ -> zero 
       GT -> suc (literal $ n - 1)
 
