@@ -48,12 +48,14 @@ instance Pretty Severity where
 data Code
     = LexError
     | ParseError
+    | ConversionError
     | Impossible Text
     deriving stock Show
 
 instance Pretty Code where
     pretty LexError   = "[E001]: Lexer Error"
     pretty ParseError = "[E002]: Parser Error"
+    pretty ConversionError = "[E003]: Conversion Error"
     pretty (Impossible msg) = "[XXXX]: The Impossible happened:" <+> pretty msg
 
 --------------------------------------------------------------------------------

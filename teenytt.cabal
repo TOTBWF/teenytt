@@ -38,11 +38,14 @@ library
         TeenyTT.Core.Conversion
         TeenyTT.Core.Domain
         TeenyTT.Core.Eval
+        TeenyTT.Core.NbE
         TeenyTT.Core.Quote
         TeenyTT.Core.Syntax
         TeenyTT.Core.Types
         -- Elaborator
         TeenyTT.Elaborator.ConcreteSyntax
+        TeenyTT.Elaborator.Monad
+        TeenyTT.Elaborator.Tactic
         -- Frontend
         TeenyTT.Frontend.Command
         TeenyTT.Frontend.Driver

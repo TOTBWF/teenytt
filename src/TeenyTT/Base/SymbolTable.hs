@@ -12,6 +12,8 @@ module TeenyTT.Base.SymbolTable
   , lookup
   , indexOf
   , index
+  , level
+  , size
   ) where
 
 
@@ -44,15 +46,15 @@ type DynamicArray s a = MutVar s (MutableArray s a)
 
 -- | Create a new 'DynamicPrimArray', populating it with the provided initial value.
 newDynamicPrimArray :: (PrimMonad m, Prim a) => Int -> a -> m (DynamicPrimArray (PrimState m) a)
-newDynamicPrimArray size a = do
-    array <- newPrimArray size
-    setPrimArray array 0 size a
+newDynamicPrimArray n a = do
+    array <- newPrimArray n
+    setPrimArray array 0 n a
     newMutVar array
 
 -- | Create a new 'DynamicArray', populating it with the provided initial value.
 newDynamicArray :: PrimMonad m => Int -> a -> m (DynamicArray (PrimState m) a)
-newDynamicArray size a = do
-    array <- newArray size a
+newDynamicArray n a = do
+    array <- newArray n a
     newMutVar array
 
 -- | Index into a 'DynamicPrimArray'.
@@ -81,9 +83,9 @@ writeDynamicArray dyn ix a = do
 
 -- | Resize a 'DynamicPrimArray'.
 resizeDynamicPrimArray :: (PrimMonad m, Prim a) => DynamicPrimArray (PrimState m) a -> Int -> m ()
-resizeDynamicPrimArray dyn size = do
+resizeDynamicPrimArray dyn n = do
     array <- readMutVar dyn
-    resized <- resizeMutablePrimArray array size
+    resized <- resizeMutablePrimArray array n
     writeMutVar dyn resized
 
 -- | Resize a 'DynamicArray'.
@@ -192,15 +194,15 @@ resize tbl = do
 -- | Create a new symbol table with a specified starting size.
 new :: PrimMonad m => Int -> m (SymbolTable (PrimState m) k a)
 new n = do
-    let size = nextPowerOfTwo n
-    indicies <- newDynamicPrimArray size freeSlot
-    hashes <- newDynamicPrimArray size freeSlot
-    keys <- newDynamicArray size undefined
-    values <- newDynamicArray size undefined
-    shadows <- newDynamicPrimArray size freeSlot
+    let pow2 = nextPowerOfTwo n
+    indicies <- newDynamicPrimArray pow2 freeSlot
+    hashes <- newDynamicPrimArray pow2 freeSlot
+    keys <- newDynamicArray pow2 undefined
+    values <- newDynamicArray pow2 undefined
+    shadows <- newDynamicPrimArray pow2 freeSlot
 
     used <- newMutVar 0
-    capacity <- newMutVar size
+    capacity <- newMutVar pow2
 
     pure $ SymbolTable {..}
 
@@ -291,3 +293,7 @@ level lvl tbl = do
     key <- readDynamicArray tbl.keys lvl
     value <- readDynamicArray tbl.values lvl
     pure (key, value)
+
+size :: (PrimMonad m) => SymbolTable (PrimState m) k a -> m Int
+size tbl = do
+    readMutVar tbl.used

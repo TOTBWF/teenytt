@@ -14,6 +14,8 @@ module TeenyTT.Base.Pretty
   , postfix
   -- * Display
   , Display(..)
+  , DisplayEnv
+  , initEnv
   , display
   -- ** Precedences
   , leftOf
@@ -86,6 +88,12 @@ data DisplayEnv s =
     , vars :: SymbolTable s Ident (Int, Doc ())
     }
 
+initEnv :: (PrimMonad m) => m (DisplayEnv (PrimState m))
+initEnv = do
+    let prec = (minBound, minBound)
+    vars <- Tbl.new 128
+    pure $ DisplayEnv {prec, vars}
+
 leftOf :: Prec -> DisplayEnv s -> DisplayEnv s
 leftOf (Prec l _) env = env { prec = (minBound, l) }
 
@@ -144,7 +152,7 @@ display env a = do
 presentTop :: (Display a) => a -> Doc ()
 presentTop a = runST do
     let prec = (minBound, minBound)
-    vars <- Tbl.new 120
+    vars <- Tbl.new 128
     display' (DisplayEnv { prec, vars }) a
 
 type family CannotDisplayIdentifiers :: Constraint where

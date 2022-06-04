@@ -2,6 +2,8 @@
 module TeenyTT.Base.Env
   ( MutableEnv
   , Env
+  , new
+  , size
   -- * DeBruijin Operations
   , index
   , level
@@ -32,6 +34,17 @@ data Env a =
     }
     deriving stock (Show)
 
+new :: (PrimMonad m) => Int -> m (MutableEnv (PrimState m) a)
+new n = do
+    array <- newArray n undefined
+    items <- newMutVar array
+    capacity <- newMutVar n
+    used <- newMutVar 0
+    pure $ MutableEnv {items, capacity, used}
+
+size :: (PrimMonad m) => MutableEnv (PrimState m) a -> m Int
+size env = readMutVar env.used
+
 --------------------------------------------------------------------------------
 -- Resizing
 
@@ -52,7 +65,6 @@ resize env = do
 
     writeMutVar env.capacity newCapacity
     writeMutVar env.items resized
-    where
 
 --------------------------------------------------------------------------------
 -- DeBruijin Operations
