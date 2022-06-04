@@ -40,8 +40,8 @@ typ locTp =
           Univ.formation
       CS.Nat ->
           Nat.formation
-      _ ->
-          T.failTp $ notAType locTp
+      tm ->
+          Univ.el (chk locTp)
 
 chk :: CS.Term -> T.Chk
 chk locTm =

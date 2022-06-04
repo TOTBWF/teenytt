@@ -6,6 +6,7 @@
 module TeenyTT.Base.SymbolTable
   ( SymbolTable
   , new
+  , clone
   , push
   , pop_
   , pop
@@ -69,6 +70,18 @@ readDynamicArray :: (PrimMonad m) => DynamicArray (PrimState m) a -> Int -> m a
 readDynamicArray dyn ix = do
     array <- readMutVar dyn 
     readArray array ix
+
+-- | Clone a 'DynamicPrimArray' by creating both a new mutable variable, and also copying all elements.
+cloneDynamicPrimArray :: (PrimMonad m, Prim a) => DynamicPrimArray (PrimState m) a -> Int -> Int -> m (DynamicPrimArray (PrimState m) a)
+cloneDynamicPrimArray dyn offset count = do
+    array <- readMutVar dyn
+    newMutVar =<< cloneMutablePrimArray array offset count
+
+-- | Clone a 'DynamicArray' by creating both a new mutable variable, and also copying all elements.
+cloneDynamicArray :: (PrimMonad m) => DynamicArray (PrimState m) a -> Int -> Int -> m (DynamicArray (PrimState m) a)
+cloneDynamicArray dyn offset count = do
+    array <- readMutVar dyn
+    newMutVar =<< cloneMutableArray array offset count
 
 -- | Write to a 'DynamicPrimArray'.
 writeDynamicPrimArray :: (PrimMonad m, Prim a) => DynamicPrimArray (PrimState m) a -> Int -> a -> m ()
@@ -205,6 +218,18 @@ new n = do
     used <- newMutVar 0
     capacity <- newMutVar pow2
 
+    pure $ SymbolTable {..}
+
+clone :: (PrimMonad m) => SymbolTable (PrimState m) k a -> m (SymbolTable (PrimState m) k a)
+clone tbl = do
+    tblSize <- readMutVar tbl.capacity
+    indicies <- cloneDynamicPrimArray tbl.indicies 0 tblSize
+    hashes <- cloneDynamicPrimArray tbl.hashes 0 tblSize
+    keys <- cloneDynamicArray tbl.keys 0 tblSize
+    values <- cloneDynamicArray tbl.values 0 tblSize
+    shadows <- cloneDynamicPrimArray tbl.shadows 0 tblSize
+    used <- newMutVar =<< readMutVar tbl.used
+    capacity <- newMutVar tblSize
     pure $ SymbolTable {..}
 
 push :: (PrimMonad m, Hashable k, Eq k) => k -> a -> SymbolTable (PrimState m) k a -> m ()

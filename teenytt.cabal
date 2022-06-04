@@ -49,6 +49,7 @@ library
         TeenyTT.Elaborator.Macros
         TeenyTT.Elaborator.Monad
         TeenyTT.Elaborator.Refiner
+        TeenyTT.Elaborator.Refiner.Nat
         TeenyTT.Elaborator.Refiner.Pi
         TeenyTT.Elaborator.Refiner.Sigma
         TeenyTT.Elaborator.Refiner.Structural
