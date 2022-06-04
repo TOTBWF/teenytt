@@ -24,6 +24,7 @@ import Prelude hiding (lookup)
 import GHC.Exts
 import GHC.Integer.Logarithms
 
+import Control.Exception (assert)
 import Control.Monad.Primitive
 
 import Data.Bits
@@ -267,6 +268,7 @@ pop_ tbl = do
       -- Makes sure we don't retain a reference to the key or the value.
       writeDynamicArray tbl.keys lastEntry undefined
       writeDynamicArray tbl.values lastEntry undefined
+      writeMutVar tbl.used lastEntry
     else
       pure ()
 
@@ -287,6 +289,7 @@ pop tbl = do
       -- Makes sure we don't retain a reference to the key or the value.
       writeDynamicArray tbl.keys lastEntry undefined
       writeDynamicArray tbl.values lastEntry undefined
+      writeMutVar tbl.used lastEntry
       pure $ Just (key, value)
     else
       pure Nothing
@@ -306,6 +309,7 @@ indexOf key tbl = do
         Free _ ->
             Nothing
         Index {entryIndex} ->
+            assert (used - entryIndex - 1 >= 0) $
             Just (used - entryIndex - 1)
 
 levelOf :: (PrimMonad m, Hashable k, Eq k) => k -> SymbolTable (PrimState m) k a -> m (Maybe Int)
@@ -319,12 +323,14 @@ levelOf key tbl =
 index :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m a
 index ix tbl = do
     used <- readMutVar tbl.used
+    assert (ix >= 0 && ix < used) $ pure ()
     value <- readDynamicArray tbl.values (used - ix - 1)
     pure value
 
 level :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m a
 level lvl tbl = do
-    -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
+    used <- readMutVar tbl.used
+    assert (lvl >= 0 && lvl < used) $ pure ()
     value <- readDynamicArray tbl.values lvl
     pure value
 

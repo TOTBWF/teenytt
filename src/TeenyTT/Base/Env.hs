@@ -16,6 +16,7 @@ module TeenyTT.Base.Env
   , thaw
   ) where
 
+import Control.Exception (assert)
 import Control.Monad.Primitive
 
 import Data.Primitive.Array
@@ -31,6 +32,7 @@ data MutableEnv s a =
 data Env a =
     Env
     { items    :: Array a
+    , capacity :: Int
     , used     :: Int
     }
     deriving stock (Show)
@@ -79,10 +81,8 @@ index ix env = do
     used <- readMutVar env.used
     items <- readMutVar env.items
     -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
-    if (ix < 0 || ix >= used) then
-      error "index: out of bounds index"
-    else
-      readArray items (used - ix - 1)
+    assert (ix >= 0 && ix < used) $ pure ()
+    readArray items (used - ix - 1)
 
 {-# INLINE level #-}
 level :: (PrimMonad m) => Int -> MutableEnv (PrimState m) a -> m a
@@ -90,10 +90,8 @@ level lvl env = do
     used <- readMutVar env.capacity
     items <- readMutVar env.items
     -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
-    if (lvl < 0 || lvl >= used) then
-      error "level: out of bounds level"
-    else
-      readArray items lvl
+    assert (lvl >= 0 && lvl < used) $ pure ()
+    readArray items lvl
 
 --------------------------------------------------------------------------------
 -- Modification
@@ -104,12 +102,12 @@ push a env = do
     used <- readMutVar env.used
     capacity <- readMutVar env.capacity
 
+    assert (used < capacity) $ pure ()
     writeArray items used a
     writeMutVar env.used (used + 1)
-    if (used + 1 == capacity) then
-       resize env
-    else
-      pure ()
+    if (used + 1 == capacity)
+      then resize env
+      else pure ()
 
 pop_ :: (PrimMonad m) => MutableEnv (PrimState m) a -> m ()
 pop_ env = do
@@ -117,6 +115,7 @@ pop_ env = do
     used <- readMutVar env.used
 
     -- Don't retain a reference to the item so it can get GC'd.
+    assert (used - 1 >= 0) $ pure ()
     writeArray items (used - 1) undefined
     writeMutVar env.used (used - 1)
 
@@ -126,13 +125,14 @@ pop_ env = do
 freeze :: (PrimMonad m) => MutableEnv (PrimState m) a -> m (Env a)
 freeze env = do
     used <- readMutVar env.used
+    capacity <- readMutVar env.capacity
     array <- readMutVar env.items
     items <- freezeArray array 0 used
-    pure $ Env { items, used }
+    pure $ Env { items, capacity, used }
 
 thaw :: (PrimMonad m) => Env a -> m (MutableEnv (PrimState m) a)
 thaw env = do
     used <- newMutVar env.used
-    capacity <- newMutVar env.used
-    items <- newMutVar =<< thawArray env.items 0 env.used
+    capacity <- newMutVar env.capacity
+    items <- newMutVar =<< thawArray env.items 0 env.capacity
     pure $ MutableEnv {..}
