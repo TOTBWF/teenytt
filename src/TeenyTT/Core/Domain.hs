@@ -10,9 +10,15 @@ module TeenyTT.Core.Domain
   , pattern Hole
   -- * Neutrals
   , pushFrame
+  -- * Environments
+  , thaw
+  , freeze
   ) where
 
-import Data.Text (Text)
+import Control.Monad.Primitive
+
+import TeenyTT.Base.Env qualified as Env
+import TeenyTT.Base.Ident
 
 import TeenyTT.Core.Types as Types
     ( Value(..)
@@ -20,6 +26,8 @@ import TeenyTT.Core.Types as Types
     , Neu(..)
     , Head(..)
     , Frame(..)
+    , Env(..)
+    , MutableEnv(..)
     , Clo(..)
     )
 
@@ -30,7 +38,7 @@ type Type = ValueType
 pattern Local :: Int -> [Frame] -> Value
 pattern Local lvl spine = VNeu (Neu (KLocal lvl) spine)
 
-pattern Global :: Text -> Value -> [Frame] -> Value
+pattern Global :: Ident -> Value -> [Frame] -> Value
 pattern Global name val spine = VNeu (Neu (KGlobal name val) spine)
 
 pattern Hole :: [Frame] -> Value
@@ -42,3 +50,9 @@ pushFrame neu frm unf = case neu.hd of
       neu { hd = KGlobal name (unf v), spine = frm : neu.spine }
   _ ->
       neu { spine = frm : neu.spine }
+
+thaw :: (PrimMonad m) => Env -> m (MutableEnv (PrimState m))
+thaw env = MutableEnv <$> Env.thaw env.values <*> Env.thaw env.types
+
+freeze :: (PrimMonad m) => MutableEnv (PrimState m) -> m Env
+freeze env = Env <$> Env.freeze env.values <*> Env.freeze env.types

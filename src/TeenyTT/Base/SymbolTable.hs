@@ -11,6 +11,7 @@ module TeenyTT.Base.SymbolTable
   , pop
   , lookup
   , indexOf
+  , levelOf
   , index
   , level
   , size
@@ -274,12 +275,21 @@ lookup key tbl =
           Just <$> readDynamicArray tbl.values entryIndex
 
 indexOf :: (PrimMonad m, Hashable k, Eq k) => k -> SymbolTable (PrimState m) k a -> m (Maybe Int)
-indexOf key tbl =
+indexOf key tbl = do
+    used <- readMutVar tbl.used
     findHashIndex key (hash key) tbl <&> \case
-    Free _ ->
-        Nothing
-    Index {entryIndex} ->
-        Just entryIndex
+        Free _ ->
+            Nothing
+        Index {entryIndex} ->
+            Just (used - entryIndex - 1)
+
+levelOf :: (PrimMonad m, Hashable k, Eq k) => k -> SymbolTable (PrimState m) k a -> m (Maybe Int)
+levelOf key tbl =
+    findHashIndex key (hash key) tbl <&> \case
+        Free _ ->
+            Nothing
+        Index {entryIndex} ->
+            Just entryIndex
 
 index :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m a
 index ix tbl = do
@@ -287,12 +297,11 @@ index ix tbl = do
     value <- readDynamicArray tbl.values (used - ix - 1)
     pure value
 
-level :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m (k, a)
+level :: (PrimMonad m) => Int -> SymbolTable (PrimState m) k a -> m a
 level lvl tbl = do
     -- [TODO: Reed M, 02/06/2022] Assertions for bounds checks
-    key <- readDynamicArray tbl.keys lvl
     value <- readDynamicArray tbl.values lvl
-    pure (key, value)
+    pure value
 
 size :: (PrimMonad m) => SymbolTable (PrimState m) k a -> m Int
 size tbl = do

@@ -14,6 +14,9 @@ module TeenyTT.Core.NbE (
     , Eval.instTpClo
     -- * Eliminators
     , Eval.doEl
+    -- * Splicing
+    , Eval.spliceTm
+    , Eval.spliceTp
     ) where
 
 import TeenyTT.Core.Eval qualified as Eval

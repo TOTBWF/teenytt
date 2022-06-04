@@ -5,6 +5,7 @@ module TeenyTT.Elaborator.ConcreteSyntax
   , Cell(..)
   , Case(..)
   , Pattern(..)
+  , PatternArg(..)
   ) where
 
 import GHC.Generics
@@ -23,7 +24,7 @@ import TeenyTT.Base.Prec qualified as Prec
 type Term = Loc Term_
 data Term_
     = Var Text
-    | Let Term Ident Term
+    | Let Ident Term Term
     | Ann Term Term
     | Hole
     | Incomplete Term
@@ -53,11 +54,15 @@ data Cell = Cell { names :: NonEmpty Ident, tp :: Term }
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
 
-data Case = Case { lbl :: Text, patterns :: [Pattern], body :: Term }
+data Case = Case { pattern :: Pattern, body :: Term }
     deriving stock (Show, Generic)
     deriving anyclass (NFData)
 
-data Pattern
+data Pattern = Pattern { lbl :: Text, args :: [PatternArg] }
+    deriving stock (Show, Generic)
+    deriving anyclass (NFData)
+
+data PatternArg
     = Simple Ident
     | Inductive Ident Ident
     deriving stock (Show, Generic)
@@ -80,6 +85,9 @@ instance Display Cell where
         pure $ parens $ pnames <+> ":" <+> ptp
 
 instance Pretty Pattern where
+    pretty pat = pretty pat.lbl <+> hsep (fmap pretty pat.args)
+
+instance Pretty PatternArg where
     pretty (Simple n) = pretty n
     pretty (Inductive v ih) = parens $ pretty v <+> "→" <+> pretty ih
 
@@ -87,7 +95,7 @@ instance Display Case where
     classify _ = Prec.lambda
     display' env c = do
         pbody <- display (leftOf Prec.arrow env) c.body
-        pure $ pretty c.lbl <+> hsep (fmap pretty c.patterns) <+> "→" <+> pbody
+        pure $ pretty c.pattern <+> "→" <+> pbody
 
 instance Display Term_ where
     classify (Var _)        = Prec.atom
@@ -111,7 +119,7 @@ instance Display Term_ where
     classify (LamElim _)    = Prec.lambda
 
     display' env (Var txt) = pure $ pretty txt
-    display' env (Let tm x body) = do
+    display' env (Let x tm body) = do
         ptm <- display (isolated env) tm
         pbody <- display (rightOf Prec.in_ env) body
         pure $ "let" <+> pretty x <+> "=" <+> ptm <+> "in" <+> pbody

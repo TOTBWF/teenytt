@@ -40,11 +40,19 @@ library
         TeenyTT.Core.Eval
         TeenyTT.Core.NbE
         TeenyTT.Core.Quote
+        TeenyTT.Core.Splice
         TeenyTT.Core.Syntax
+        TeenyTT.Core.TermBuilder
         TeenyTT.Core.Types
         -- Elaborator
         TeenyTT.Elaborator.ConcreteSyntax
+        TeenyTT.Elaborator.Macros
         TeenyTT.Elaborator.Monad
+        TeenyTT.Elaborator.Refiner
+        TeenyTT.Elaborator.Refiner.Pi
+        TeenyTT.Elaborator.Refiner.Sigma
+        TeenyTT.Elaborator.Refiner.Structural
+        TeenyTT.Elaborator.Refiner.Univ
         TeenyTT.Elaborator.Tactic
         -- Frontend
         TeenyTT.Frontend.Command

@@ -49,6 +49,13 @@ data Code
     = LexError
     | ParseError
     | ConversionError
+    | ExpectedConnective
+    | UnboundVariable
+    | MalformedCase
+    | CannotEliminate
+    | CannotSynth
+    | NotAType
+    | NotImplemented
     | Impossible Text
     deriving stock Show
 
@@ -56,6 +63,13 @@ instance Pretty Code where
     pretty LexError   = "[E001]: Lexer Error"
     pretty ParseError = "[E002]: Parser Error"
     pretty ConversionError = "[E003]: Conversion Error"
+    pretty ExpectedConnective = "[E004]: Refiner Error"
+    pretty UnboundVariable = "[E005]: Refiner Error"
+    pretty MalformedCase = "[E006]: Refiner Error"
+    pretty CannotEliminate = "[E007]: Refiner Error"
+    pretty CannotSynth = "[E008]: Refiner Error"
+    pretty NotAType = "[E009]: Refiner Error"
+    pretty NotImplemented = "[XXXX]: Not Implemented"
     pretty (Impossible msg) = "[XXXX]: The Impossible happened:" <+> pretty msg
 
 --------------------------------------------------------------------------------

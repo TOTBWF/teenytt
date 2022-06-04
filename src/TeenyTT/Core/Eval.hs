@@ -17,6 +17,9 @@ module TeenyTT.Core.Eval
   , instTpClo
   -- * Unfolding
   , unfold
+  -- * Splicing
+  , spliceTm
+  , spliceTp
   ) where
 
 import Control.Monad.Primitive
@@ -24,43 +27,51 @@ import Control.Monad.Reader
 import Control.Monad.ST.Strict
 
 import TeenyTT.Base.Diagnostic
-import TeenyTT.Base.Env (MutableEnv, Env)
+import TeenyTT.Base.Env
 import TeenyTT.Base.Env qualified as Env
 
+import TeenyTT.Core.Splice (Splice)
+import TeenyTT.Core.Splice qualified as Splice
 import TeenyTT.Core.Syntax qualified as S
 import TeenyTT.Core.Domain qualified as D
 
 --------------------------------------------------------------------------------
 -- The Evaluation Monad
 
-newtype EvalM s a = EvalM { unEvalM :: ReaderT (MutableEnv s D.Term) (ST s) a }
-    deriving newtype (Functor, Applicative, Monad, MonadReader (MutableEnv s D.Term), PrimMonad)
+newtype EvalM s a = EvalM { unEvalM :: ReaderT (D.MutableEnv s) (ST s) a }
+    deriving newtype (Functor, Applicative, Monad, MonadReader (D.MutableEnv s), PrimMonad)
 
 runEvalM :: Env D.Term -> (forall s. EvalM s a) -> a
 runEvalM env m =
     runST $ do
-      mutEnv <- Env.thaw env
+      values <- Env.thaw env
+      types <- Env.new 32
       -- NOTE: For very annoying reasons, we can't pattern match on 'EvalM',
       -- so we use an accessor instead.
-      runReaderT m.unEvalM mutEnv
+      runReaderT m.unEvalM (D.MutableEnv { values, types })
 
 var :: Int -> EvalM s D.Term
 var ix = do
     env <- ask
-    Env.index ix env
+    Env.index ix env.values
+
+tpvar :: Int -> EvalM s D.Type
+tpvar ix = do
+    env <- ask
+    Env.index ix env.types
 
 clo :: a -> EvalM s (D.Clo a)
 clo a = do
     mutEnv <- ask
-    env <- Env.freeze mutEnv
+    env <- D.freeze mutEnv
     pure $ D.Clo env a
 
 extend :: D.Term -> EvalM s a -> EvalM s a
 extend tm m = do
     env <- ask
-    Env.push tm env
+    Env.push tm env.values
     a <- m
-    Env.pop_ env
+    Env.pop_ env.values
     pure a
 
 eval :: S.Term -> EvalM s D.Term
@@ -99,6 +110,8 @@ eval S.CodeNat =
     pure $ D.VCodeNat
 
 evalTp :: S.Type -> EvalM s D.Type
+evalTp (S.TpVar ix) =
+    tpvar ix
 evalTp (S.Pi x base fam) =
     D.VPi x <$> evalTp base <*> clo fam
 evalTp (S.Sigma x base fam) =
@@ -146,14 +159,14 @@ elClo (D.Clo env tm) = D.Clo env (S.El tm)
 
 instTmClo :: D.Clo S.Term -> D.Term -> D.Term
 instTmClo (D.Clo env tm) val = runST do
-    mutEnv <- Env.thaw env
-    Env.push val mutEnv
+    mutEnv <- D.thaw env
+    Env.push val mutEnv.values
     runReaderT (eval tm).unEvalM mutEnv
 
 instTpClo :: D.Clo S.Type -> D.Term -> D.Type
 instTpClo (D.Clo env tp) val = runST do
-    mutEnv <- Env.thaw env
-    Env.push val mutEnv
+    mutEnv <- D.thaw env
+    Env.push val mutEnv.values
     runReaderT (evalTp tp).unEvalM mutEnv
 
 --------------------------------------------------------------------------------
@@ -162,3 +175,16 @@ instTpClo (D.Clo env tp) val = runST do
 unfold :: D.Term -> D.Term
 unfold (D.VNeu (D.Neu { hd = D.KGlobal _ v })) = v
 unfold v = v
+
+--------------------------------------------------------------------------------
+-- Splicing
+
+spliceTm :: (forall s. Splice (ST s) S.Term) -> D.Term
+spliceTm splice = runST do
+    (env, tm) <- Splice.compile splice
+    runReaderT (eval tm).unEvalM env
+
+spliceTp :: (forall s. Splice (ST s) S.Type) -> D.Type
+spliceTp splice = runST do
+    (env, tp) <- Splice.compile splice
+    runReaderT (evalTp tp).unEvalM env

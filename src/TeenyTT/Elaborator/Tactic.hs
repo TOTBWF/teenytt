@@ -1,11 +1,22 @@
-{-# LANGUAGE DataKinds #-}
--- | Bidirectional Tactics for Elaboration
-module TeenyTT.Elaborator.Tactic
-  ( Chk(..)
-  , runChk
-  , Syn(..)
-  , runSyn
-  ) where
+-- | Bidirectional Tactic for Elaboration
+module TeenyTT.Elaborator.Tactic (
+    -- * Type Formation Tactics
+      Tp(..)
+    , runTp
+    , failTp
+    -- * Check Tactics
+    , Chk(..)
+    , runChk
+    , chk
+    , failChk
+    , match
+    -- * Synthesis Tactics
+    , Syn(..)
+    , runSyn
+    , ann
+    , failSyn
+    , observe
+    ) where
 
 import TeenyTT.Core.Syntax qualified as S
 import TeenyTT.Core.Domain qualified as D
@@ -21,6 +32,9 @@ newtype Tp = Tp { unTp :: ElabM S.Type }
 runTp :: Tp -> ElabM S.Type
 runTp tac = tac.unTp
 
+failTp :: (forall a. ElabM a) -> Tp
+failTp m = Tp m
+
 --------------------------------------------------------------------------------
 -- Check Tactics
 
@@ -30,12 +44,20 @@ newtype Chk = Chk { unChk :: D.Type -> ElabM S.Term }
 runChk :: Chk -> D.Type -> ElabM S.Term
 runChk tac = tac.unChk
 
-{-# INLINE syn #-}
-syn :: Syn -> Chk
-syn tac = Chk \goal -> do
+{-# INLINE chk #-}
+chk :: Syn -> Chk
+chk tac = Chk \goal -> do
   (tm, vtp) <- runSyn tac
   equateTp goal vtp
   pure tm
+
+failChk :: (forall a. ElabM a) -> Chk
+failChk m = Chk \_ -> m
+
+match :: (D.Type -> ElabM Chk) -> Chk
+match k = Chk \goal -> do
+  tac <- k goal
+  runChk tac goal
 
 --------------------------------------------------------------------------------
 -- Synthesis Tactics
@@ -52,3 +74,12 @@ ann tac tpTac = Syn do
     vtp <- evalTp tp
     tm <- runChk tac vtp
     pure (tm, vtp)
+
+failSyn :: (forall a. ElabM a) -> Syn
+failSyn m = Syn m
+
+observe :: Syn -> (S.Term -> D.Type -> ElabM Syn) -> Syn
+observe synTac k = Syn do
+    (tm, vtp) <- runSyn synTac
+    tac <- k tm vtp
+    runSyn tac

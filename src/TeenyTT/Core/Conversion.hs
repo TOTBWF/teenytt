@@ -9,7 +9,7 @@ module TeenyTT.Core.Conversion
 import Control.Exception
 import Control.Monad.Reader
 
-import Data.Text (Text)
+import TeenyTT.Base.Ident
 
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -152,7 +152,7 @@ equateNeu neu0 neu1 =
       _ ->
           notConvertible
 
-equateGlobals :: Text -> Text -> D.Term -> D.Term -> [D.Frame] -> [D.Frame] -> ConvertM ()
+equateGlobals :: Ident -> Ident -> D.Term -> D.Term -> [D.Frame] -> [D.Frame] -> ConvertM ()
 equateGlobals name0 name1 ~v0 ~v1 spine0 spine1 = do
     getMode >>= \case
         Flex ->

@@ -10,13 +10,13 @@ module TeenyTT.Core.Types (
   , Neu(..)
   , Head(..)
   , Frame(..)
+  , Env(..)
+  , MutableEnv(..)
   , Clo(..)
   ) where
 
-import Data.Text (Text)
-
 import TeenyTT.Base.Ident
-import TeenyTT.Base.Env (Env)
+import TeenyTT.Base.Env qualified as Env
 import TeenyTT.Base.Prec qualified as Prec
 import TeenyTT.Base.Pretty (Pretty(..), Display(..), display, (<+>))
 import TeenyTT.Base.Pretty qualified as Pp
@@ -26,7 +26,7 @@ import TeenyTT.Base.Pretty qualified as Pp
 
 data Syntax
     = Local Int
-    | Global Text ~Value
+    | Global Ident ~Value
     | Let Ident Syntax Syntax
     | Hole
     | Lam Ident Syntax
@@ -44,7 +44,8 @@ data Syntax
     deriving stock (Show)
 
 data SyntaxType
-    = Pi Ident SyntaxType SyntaxType
+    = TpVar Int
+    | Pi Ident SyntaxType SyntaxType
     | Sigma Ident SyntaxType SyntaxType
     | El Syntax
     | Nat
@@ -73,13 +74,14 @@ data ValueType
     | VSigma Ident ValueType (Clo SyntaxType)
     | VNat
     | VUniv
+    deriving stock (Show)
 
 data Neu = Neu { hd :: Head, spine :: [Frame] }
     deriving stock (Show)
 
 data Head
     = KLocal Int
-    | KGlobal Text ~Value
+    | KGlobal Ident ~Value
     | KHole
     deriving stock (Show)
 
@@ -93,7 +95,18 @@ data Frame
 --------------------------------------------------------------------------------
 -- Closures
 
-data Clo a = Clo (Env Value) a
+data Env = Env
+    { values :: Env.Env Value
+    , types :: Env.Env ValueType
+    }
+    deriving stock (Show)
+
+data MutableEnv s = MutableEnv
+    { values :: Env.MutableEnv s Value
+    , types :: Env.MutableEnv s ValueType
+    }
+
+data Clo a = Clo Env a
     deriving stock (Show)
 
 --------------------------------------------------------------------------------
@@ -173,12 +186,19 @@ instance Display Syntax where
         pure "ℕ"
 
 instance Display SyntaxType where
+    classify (TpVar _) = Prec.atom
     classify (Pi _ _ _) = Prec.arrow
     classify (Sigma _ _ _) = Prec.times
     classify (El _) = Prec.passed
     classify Nat = Prec.atom
     classify Univ = Prec.atom
 
+    display' env (TpVar ix) =
+        -- [NOTE: Displaying TpVars]
+        -- These only get created by splicing, and should
+        -- get evaluated away immediately. Therefore,
+        -- we don't need to worry about making them pretty.
+        pure $ "tp/var" <+> (Pp.brackets $ pretty ix)
     display' env (Pi x base fam) = do
         pbase <- display (Pp.rightOf Prec.colon env) base
         Pp.extend x env \px -> do
